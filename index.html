@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SALT 关系倾向测试</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="data/result_types.js" defer></script>
-  <script src="data/result_profiles.js" defer></script>
-  <script src="data/role_images.js" defer></script>
-  <script src="data/support_profiles.js" defer></script>
-  <script src="assets/art_manifest.js" defer></script>
-  <script src="questions.js" defer></script>
-  <script src="app.js" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260504-3">
+  <script src="data/result_types.js?v=20260504-3" defer></script>
+  <script src="data/result_profiles.js?v=20260504-3" defer></script>
+  <script src="data/role_images.js?v=20260504-3" defer></script>
+  <script src="data/support_profiles.js?v=20260504-3" defer></script>
+  <script src="assets/art_manifest.js?v=20260504-3" defer></script>
+  <script src="questions.js?v=20260504-3" defer></script>
+  <script src="app.js?v=20260504-3" defer></script>
 </head>
 <body>
   <div class="background-art" id="backgroundArt" aria-hidden="true"></div>
@@ -51,12 +51,63 @@
         </div>
       </aside>
 
+      <section class="glass-panel intro-panel" id="introPanel" aria-live="polite">
+        <div class="intro-hero">
+          <div class="intro-copy">
+            <p class="panel-kicker">SALT 关系倾向测试</p>
+            <h2>看见你的关系节奏。</h2>
+            <p>
+              SALT 不是诊断，也不是给关系贴标签。<br>
+              它拆开四种线索：特殊性、兑现力、长程性与双向性。<br>
+              你会看到自己的给出方式，也会看到你期待伴侣如何回应。
+            </p>
+          </div>
+          <div class="intro-mark" aria-hidden="true">
+            <span>S</span><span>A</span><span>L</span><span>T</span>
+          </div>
+        </div>
+
+        <div class="intro-axis-grid" aria-label="SALT 四个维度">
+          <article class="intro-axis-card">
+            <strong>S</strong>
+            <span>特殊性</span>
+            <p>你是否需要专属位置、私密暗号和被区别对待的确认。</p>
+          </article>
+          <article class="intro-axis-card">
+            <strong>A</strong>
+            <span>兑现力</span>
+            <p>在意能不能落成行动、信号、说明和修复。</p>
+          </article>
+          <article class="intro-axis-card">
+            <strong>L</strong>
+            <span>长程性</span>
+            <p>重要的人会不会被放进未来、日常和生活结构。</p>
+          </article>
+          <article class="intro-axis-card">
+            <strong>T</strong>
+            <span>双向性</span>
+            <p>你给出的方式和你期待收到的方式是否在同一节奏上。</p>
+          </article>
+        </div>
+
+        <div class="intro-showcase">
+          <div class="intro-section-title">
+            <span>角色参考</span>
+            <strong>不同 SALT 模式会对应不同的关系气质</strong>
+          </div>
+          <div class="intro-role-grid" id="introRoleGrid"></div>
+        </div>
+
+        <div class="panel-actions intro-actions">
+          <button class="primary-button" id="startButton" type="button">开始测试</button>
+        </div>
+      </section>
+
       <section class="glass-panel quiz-panel" id="quizPanel" aria-live="polite">
         <h2 class="question-text" id="questionText">题目载入中</h2>
         <div class="option-grid" id="optionGrid"></div>
         <div class="panel-actions">
-          <button class="ghost-button" id="backButton" type="button">返回</button>
-          <button class="primary-button" id="nextButton" type="button">下一题</button>
+          <button class="primary-button back-primary-button" id="backButton" type="button">返回</button>
         </div>
       </section>
 

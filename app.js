@@ -24,6 +24,7 @@
     "S-A-L-T+",
     "S-A-L-T-"
   ];
+  const INTRO_CODES = ["S+A+L+T+", "S+A-L-T+", "S-A+L-T+", "S-A-L-T+"];
 
   const FALLBACK_TITLES = {
     "S+A+L+T+": "誓约同行型",
@@ -101,6 +102,7 @@
   let roleArtFadeTimer = 0;
   let roleAffinityLabel = DEFAULT_ROLE_AFFINITY_LABEL;
   let lastResultData = null;
+  let autoAdvanceTimer = 0;
 
   const questions = window.SALT_QUESTIONS || { main: [], support: [], all: [], scale: [] };
   const allQuestions = questions.all || (questions.main || []).concat(questions.support || []);
@@ -127,12 +129,14 @@
     els.backgroundArt = document.getElementById("backgroundArt");
     els.questionCount = document.getElementById("questionCount");
     els.progressFill = document.getElementById("progressFill");
+    els.introPanel = document.getElementById("introPanel");
+    els.startButton = document.getElementById("startButton");
+    els.introRoleGrid = document.getElementById("introRoleGrid");
     els.quizPanel = document.getElementById("quizPanel");
     els.resultPanel = document.getElementById("resultPanel");
     els.questionText = document.getElementById("questionText");
     els.optionGrid = document.getElementById("optionGrid");
     els.backButton = document.getElementById("backButton");
-    els.nextButton = document.getElementById("nextButton");
     els.restartTopButton = document.getElementById("restartTopButton");
     els.restartResultButton = document.getElementById("restartResultButton");
     els.resultBackButton = document.getElementById("resultBackButton");
@@ -177,7 +181,7 @@
       selectAnswer(Number(button.dataset.value));
     });
 
-    els.nextButton.addEventListener("click", goNext);
+    if (els.startButton) els.startButton.addEventListener("click", startQuiz);
     els.backButton.addEventListener("click", goBack);
     els.resultBackButton.addEventListener("click", () => {
       state.mode = "quiz";
@@ -208,16 +212,16 @@
     const tag = String((event.target && event.target.tagName) || "").toLowerCase();
     if (tag === "input" || tag === "textarea") return;
 
-    if (/^[1-5]$/.test(event.key) && state.mode !== "result") {
+    if (/^[1-5]$/.test(event.key) && state.mode === "quiz") {
       event.preventDefault();
       const option = scale[Number(event.key) - 1];
       if (option) selectAnswer(option.value);
       return;
     }
 
-    if (event.key === "Enter" && state.mode !== "result") {
+    if (event.key === "Enter" && state.mode === "intro") {
       event.preventDefault();
-      goNext();
+      startQuiz();
       return;
     }
 
@@ -244,31 +248,48 @@
       renderResult();
       return;
     }
+    if (state.mode === "intro") {
+      renderIntro();
+      return;
+    }
     state.mode = "quiz";
     renderQuestion();
+  }
+
+  function renderIntro() {
+    document.body.dataset.screen = "intro";
+    if (els.introPanel) els.introPanel.classList.remove("hidden");
+    els.quizPanel.classList.add("hidden");
+    els.resultPanel.classList.add("hidden");
+    applyBackground("default");
+    applySideArt("default");
+    updateProgress(false, 0);
+    if (els.introRoleGrid && !els.introRoleGrid.dataset.ready) {
+      els.introRoleGrid.innerHTML = renderIntroRoles();
+      hydrateIntroImages(els.introRoleGrid);
+      els.introRoleGrid.dataset.ready = "true";
+    }
   }
 
   function renderQuestion() {
     const question = allQuestions[state.current] || allQuestions[0];
     const selected = question ? state.answers[question.id] : undefined;
 
+    document.body.dataset.screen = "quiz";
+    if (els.introPanel) els.introPanel.classList.add("hidden");
     els.quizPanel.classList.remove("hidden");
     els.resultPanel.classList.add("hidden");
     applyBackground("default");
     applySideArt("default");
 
     updateProgress();
-    els.backButton.disabled = state.current <= 0;
-    els.nextButton.textContent = state.current >= allQuestions.length - 1 ? "查看结果" : "下一题";
-
+    els.backButton.disabled = false;
     if (!question) {
       els.questionText.textContent = "请检查 questions.js。";
       els.optionGrid.innerHTML = "";
-      els.nextButton.disabled = true;
       return;
     }
 
-    els.nextButton.disabled = false;
     els.questionText.textContent = question.text;
     els.optionGrid.innerHTML = scale.map((option) => {
       const selectedClass = Number(selected) === option.value ? " selected" : "";
@@ -288,6 +309,8 @@
     const partnerRoles = rolesForType(partnerType);
     const partnerRoleLabel = "与你期待的伴侣模式相仿的人是：";
 
+    document.body.dataset.screen = "result";
+    if (els.introPanel) els.introPanel.classList.add("hidden");
     els.quizPanel.classList.add("hidden");
     els.resultPanel.classList.remove("hidden");
     applyBackground("result");
@@ -311,6 +334,45 @@
     els.supportAnalysis.textContent = getSupportAnalysis(result.supportRanking);
     renderResultProfile(result);
     renderAnswerCode(result);
+  }
+
+  function renderIntroRoles() {
+    return INTRO_CODES.map((code) => {
+      const type = getType(code);
+      const character = primaryCharacter(type) || characterTextForType(type);
+      const image = getTypeIllustration(type, code);
+      return [
+        '<article class="intro-role-card">',
+        '<div class="intro-role-art">',
+        image ? `<img src="${escapeAttribute(image)}" alt="">` : "",
+        '<span class="intro-role-fallback">SALT</span>',
+        "</div>",
+        '<div class="intro-role-copy">',
+        `<span>${escapeHtml(code)}</span>`,
+        `<strong>${escapeHtml(type.title)}</strong>`,
+        character ? `<p>${escapeHtml(character)}</p>` : "<p>角色待补充</p>",
+        "</div>",
+        "</article>"
+      ].join("");
+    }).join("");
+  }
+
+  function hydrateIntroImages(root) {
+    root.querySelectorAll(".intro-role-art img").forEach((image) => {
+      const fallback = image.nextElementSibling;
+      image.addEventListener("load", () => {
+        image.classList.add("loaded");
+        if (fallback) fallback.classList.add("hidden");
+      });
+      image.addEventListener("error", () => {
+        image.classList.add("hidden");
+        if (fallback) fallback.classList.remove("hidden");
+      });
+      if (image.complete && image.naturalWidth > 0) {
+        image.classList.add("loaded");
+        if (fallback) fallback.classList.add("hidden");
+      }
+    });
   }
 
   function renderTypeLayerCards(result) {
@@ -438,11 +500,25 @@
 
   function selectAnswer(value) {
     const question = allQuestions[state.current];
-    if (!question || !Number.isFinite(value)) return;
+    if (state.mode !== "quiz" || !question || !Number.isFinite(value)) return;
     state.answers[question.id] = value;
     state.answerCode = "";
     state.answerFingerprint = "";
     if (state.mode !== "result") state.completedAt = "";
+    saveState();
+    renderQuestion();
+    window.clearTimeout(autoAdvanceTimer);
+    autoAdvanceTimer = window.setTimeout(() => {
+      autoAdvanceTimer = 0;
+      goNext();
+    }, 180);
+  }
+
+  function startQuiz() {
+    window.clearTimeout(autoAdvanceTimer);
+    autoAdvanceTimer = 0;
+    state.mode = "quiz";
+    state.current = Math.max(0, Math.min(allQuestions.length - 1, Number(state.current) || 0));
     saveState();
     renderQuestion();
   }
@@ -475,6 +551,8 @@
   }
 
   function goBack() {
+    window.clearTimeout(autoAdvanceTimer);
+    autoAdvanceTimer = 0;
     if (state.mode === "result") {
       state.mode = "quiz";
       state.current = Math.max(0, allQuestions.length - 1);
@@ -482,21 +560,28 @@
       renderQuestion();
       return;
     }
+    if (state.mode === "intro") return;
     if (state.current > 0) {
       state.current -= 1;
       saveState();
       renderQuestion();
+      return;
     }
+    state.mode = "intro";
+    saveState();
+    renderIntro();
   }
 
   function restart() {
+    window.clearTimeout(autoAdvanceTimer);
+    autoAdvanceTimer = 0;
     state = createInitialState();
     clearState();
-    renderQuestion();
+    renderIntro();
   }
 
-  function updateProgress(forceComplete) {
-    const answered = forceComplete ? allQuestions.length : countAnswered();
+  function updateProgress(forceComplete, forcedAnswered) {
+    const answered = Number.isFinite(forcedAnswered) ? forcedAnswered : (forceComplete ? allQuestions.length : countAnswered());
     const total = allQuestions.length || 1;
     els.questionCount.textContent = `${answered} / ${total}`;
     els.progressFill.style.width = `${clamp((answered / total) * 100, 0, 100)}%`;
@@ -1498,7 +1583,15 @@
   }
 
   function createInitialState() {
-    return { current: 0, answers: {}, mode: "quiz", completedAt: "", answerCode: "", answerFingerprint: "" };
+    return {
+      current: 0,
+      answers: {},
+      mode: "intro",
+      completedAt: "",
+      answerCode: "",
+      answerFingerprint: "",
+      questionSet: questionSetSignature()
+    };
   }
 
   function loadState() {
@@ -1509,10 +1602,11 @@
       return {
         current: Number.isFinite(parsed.current) ? parsed.current : 0,
         answers: parsed.answers && typeof parsed.answers === "object" ? parsed.answers : {},
-        mode: parsed.mode === "result" ? "result" : "quiz",
+        mode: ["intro", "quiz", "result"].includes(parsed.mode) ? parsed.mode : "intro",
         completedAt: parsed.completedAt || "",
         answerCode: parsed.answerCode || "",
-        answerFingerprint: parsed.answerFingerprint || ""
+        answerFingerprint: parsed.answerFingerprint || "",
+        questionSet: parsed.questionSet || ""
       };
     } catch (error) {
       return createInitialState();
@@ -1536,6 +1630,12 @@
   }
 
   function sanitizeState() {
+    const currentQuestionSet = questionSetSignature();
+    if (state.questionSet !== currentQuestionSet) {
+      state = createInitialState();
+      saveState();
+      return;
+    }
     const ids = new Set(allQuestions.map((question) => question.id));
     const allowedValues = new Set(scale.map((item) => item.value));
     Object.keys(state.answers).forEach((id) => {
@@ -1549,10 +1649,14 @@
     if (state.mode === "result" && !isComplete()) {
       state.mode = "quiz";
     }
+    if (state.mode === "quiz" && state.current === 0 && Object.keys(state.answers).length === 0) {
+      state.mode = "intro";
+    }
     if (state.answerFingerprint && state.answerFingerprint !== buildAnswerSignature(state.answers)) {
       state.answerCode = "";
       state.answerFingerprint = "";
     }
+    state.questionSet = currentQuestionSet;
     saveState();
   }
 

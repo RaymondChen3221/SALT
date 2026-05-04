@@ -43,8 +43,10 @@ body {
 }
 
 body {
+  min-height: 100svh;
   margin: 0;
   color: var(--text);
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 18% 16%, rgba(125, 211, 252, 0.18), transparent 28%),
     radial-gradient(circle at 82% 12%, rgba(251, 113, 133, 0.15), transparent 24%),
@@ -306,9 +308,226 @@ button:focus-visible {
   font-size: 1.05rem;
 }
 
+.intro-panel,
 .quiz-panel,
 .result-panel {
   padding: clamp(20px, 4vw, 42px);
+}
+
+.intro-panel {
+  overflow: hidden;
+}
+
+.intro-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: center;
+}
+
+.intro-copy {
+  min-width: 0;
+}
+
+.intro-copy h2 {
+  max-width: 720px;
+  margin: 0;
+  font-size: clamp(2rem, 4.2vw, 4.1rem);
+  line-height: 1.02;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.intro-copy p:not(.panel-kicker) {
+  max-width: 680px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: clamp(0.98rem, 1.35vw, 1.12rem);
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.intro-mark {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+  width: clamp(118px, 13vw, 158px);
+  padding: 12px;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(142, 243, 197, 0.28), transparent 32%),
+    linear-gradient(145deg, rgba(10, 18, 33, 0.62), rgba(40, 53, 78, 0.42));
+}
+
+.intro-mark span {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  color: var(--text);
+  font-size: clamp(1.8rem, 3vw, 2.55rem);
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.intro-axis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.intro-axis-card,
+.intro-role-card {
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 88% 0%, rgba(142, 243, 197, 0.12), transparent 32%),
+    rgba(10, 18, 33, 0.30);
+}
+
+.intro-axis-card {
+  min-height: 150px;
+  padding: 15px;
+}
+
+.intro-axis-card strong {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  aspect-ratio: 1;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  color: #06111d;
+  font-size: 1.28rem;
+  background: linear-gradient(135deg, var(--mint), var(--cyan));
+}
+
+.intro-axis-card span {
+  display: block;
+  color: var(--text);
+  font-weight: 900;
+}
+
+.intro-axis-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.62;
+}
+
+.intro-showcase {
+  margin-top: 24px;
+}
+
+.intro-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.intro-section-title span {
+  color: var(--mint);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.intro-section-title strong {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.intro-role-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.intro-axis-grid,
+.intro-role-grid {
+  scrollbar-width: none;
+}
+
+.intro-axis-grid::-webkit-scrollbar,
+.intro-role-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.intro-role-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 104px;
+  padding: 10px;
+}
+
+.intro-role-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(125, 211, 252, 0.18), rgba(251, 113, 133, 0.12)),
+    rgba(10, 18, 33, 0.35);
+}
+
+.intro-role-art img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+}
+
+.intro-role-fallback {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.intro-role-copy {
+  min-width: 0;
+}
+
+.intro-role-copy span {
+  display: block;
+  color: var(--mint);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.intro-role-copy strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.intro-role-copy p {
+  margin: 7px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.intro-actions {
+  justify-content: flex-end;
+}
+
+.back-primary-button {
+  min-width: 132px;
 }
 
 .question-text {
@@ -1045,10 +1264,7 @@ button:focus-visible {
   }
 
   .overview-panel {
-    display: grid;
-    grid-template-columns: minmax(130px, 0.72fr) minmax(0, 1fr);
-    gap: 12px;
-    align-items: stretch;
+    display: none;
   }
 
   .art-window {
@@ -1070,6 +1286,31 @@ button:focus-visible {
 
   .type-layer-grid {
     grid-template-columns: 1fr;
+  }
+
+  .intro-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .intro-mark {
+    display: none;
+  }
+
+  .intro-axis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .intro-role-grid {
+    display: flex;
+    gap: 10px;
+    overflow: auto hidden;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .intro-role-card {
+    flex: 0 0 min(260px, 76vw);
+    scroll-snap-align: start;
   }
 
   .type-card {
@@ -1096,22 +1337,163 @@ button:focus-visible {
 }
 
 @media (max-width: 560px) {
-  .overview-panel {
-    grid-template-columns: 1fr;
+  .app-shell {
+    width: min(100% - 18px, 560px);
+    min-height: 100svh;
+    padding: 10px 0;
   }
 
-  .axis-stack {
-    grid-template-columns: 1fr 1fr;
+  .topbar {
+    gap: 8px;
+    margin-bottom: 9px;
+  }
+
+  .eyebrow {
+    margin-bottom: 4px;
+    font-size: 0.68rem;
+  }
+
+  .topbar h1 {
+    font-size: clamp(1.65rem, 12vw, 2.3rem);
+    line-height: 0.98;
+  }
+
+  .top-actions {
+    gap: 8px;
+  }
+
+  .question-count {
+    min-width: 74px;
+    padding: 7px 10px;
+    font-size: 0.88rem;
+  }
+
+  .progress-track {
+    height: 5px;
+  }
+
+  .workspace {
+    margin-top: 10px;
+  }
+
+  .intro-panel {
+    max-width: calc(100vw - 18px);
+    padding: 16px;
+  }
+
+  .intro-copy h2 {
+    max-width: calc(100vw - 66px);
+    font-size: clamp(1.25rem, 7vw, 1.55rem);
+    line-height: 1.1;
+    word-break: break-all;
+  }
+
+  .intro-copy p:not(.panel-kicker) {
+    max-width: calc(100vw - 66px);
+    margin-top: 10px;
+    font-size: 0.9rem;
+    line-height: 1.62;
+    word-break: break-all;
+  }
+
+  .intro-axis-grid {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    overflow: auto hidden;
+    padding-bottom: 2px;
+    scroll-snap-type: x proximity;
+  }
+
+  .intro-axis-card {
+    flex: 0 0 168px;
+    min-height: 0;
+    padding: 10px;
+    scroll-snap-align: start;
+  }
+
+  .intro-axis-card strong {
+    width: 30px;
+    margin-bottom: 7px;
+    font-size: 1rem;
+  }
+
+  .intro-axis-card p {
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  .intro-section-title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 8px;
+  }
+
+  .intro-showcase {
+    margin-top: 14px;
+  }
+
+  .intro-role-card {
+    flex-basis: min(230px, 76vw);
+    min-height: 84px;
+    grid-template-columns: 58px minmax(0, 1fr);
+    padding: 8px;
+  }
+
+  .intro-role-art {
+    width: 58px;
+  }
+
+  .intro-actions {
+    margin-top: 12px;
+  }
+
+  body[data-screen="quiz"] .topbar {
+    display: none;
+  }
+
+  body[data-screen="quiz"] .workspace {
+    margin-top: 8px;
+  }
+
+  body[data-screen="quiz"] .quiz-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100svh - 34px);
+    padding: 16px;
   }
 
   .question-text {
     min-height: 0;
-    font-size: 1.45rem;
+    margin-bottom: 14px;
+    font-size: clamp(1.25rem, 8vw, 1.62rem);
+    line-height: 1.2;
+  }
+
+  .option-grid {
+    gap: 8px;
+  }
+
+  .option-button {
+    min-height: 50px;
+    padding: 9px 12px;
+  }
+
+  .option-label {
+    font-size: 0.96rem;
   }
 
   .panel-actions,
   .result-actions {
     flex-direction: column-reverse;
+  }
+
+  body[data-screen="quiz"] .panel-actions {
+    margin-top: auto;
+    padding: 0;
+    background: transparent;
+    position: static;
   }
 
   .primary-button,
