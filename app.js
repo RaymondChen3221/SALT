@@ -281,23 +281,24 @@
   function renderResult() {
     const result = calculateResult();
     lastResultData = result;
-    const mainType = getType(result.code);
-    const mainProfile = getProfile(result.code);
-    const mainRoles = rolesForType(mainType);
+    const partnerType = getType(result.partnerCode);
+    const partnerProfile = getProfile(result.partnerCode);
+    const partnerRoles = rolesForType(partnerType);
+    const partnerRoleLabel = "与你期待的伴侣模式相仿的人是：";
 
     els.quizPanel.classList.add("hidden");
     els.resultPanel.classList.remove("hidden");
     applyBackground("result");
     updateProgress(true);
 
-    els.resultCode.textContent = result.code;
-    els.resultTitle.textContent = mainType.title;
-    els.resultDescription.textContent = mainType.description || "这个类型还没有描述，可以在 data/result_types.json 中补充。";
-    els.resultTagline.textContent = mainProfile.tagline || "";
-    els.resultTagline.classList.toggle("hidden", !mainProfile.tagline);
-    renderRoleAffinity(primaryCharacter(mainType));
-    setupRoleArt(mainRoles, result);
-    setMainAvatar(mainType, result);
+    els.resultCode.textContent = result.partnerCode;
+    els.resultTitle.textContent = partnerType.title;
+    els.resultDescription.textContent = partnerType.description || "这个类型还没有描述，可以在 data/result_types.json 中补充。";
+    els.resultTagline.textContent = partnerProfile.partner_expectation || partnerProfile.tagline || "";
+    els.resultTagline.classList.toggle("hidden", !els.resultTagline.textContent);
+    renderRoleAffinity(primaryCharacter(partnerType), partnerRoleLabel);
+    setupRoleArt(partnerRoles, result, partnerRoleLabel);
+    setMainAvatar(partnerType, result.partnerCode, result);
 
     els.typeLayerGrid.innerHTML = renderTypeLayerCards(result);
     hydrateInlineImages(els.typeLayerGrid);
@@ -306,40 +307,33 @@
     els.gapCard.innerHTML = renderGapCard(result);
     els.supportRanking.innerHTML = renderSupportRanking(result.supportRanking);
     els.supportAnalysis.textContent = getSupportAnalysis(result.supportRanking);
-    renderResultProfile(result, mainProfile);
+    renderResultProfile(result);
     renderAnswerCode(result);
   }
 
   function renderTypeLayerCards(result) {
     const layers = [
       {
-        label: "综合 SALT",
-        code: result.code,
-        type: getType(result.code),
-        profile: getProfile(result.code),
-        paragraph: getProfile(result.code).main_profile || getType(result.code).description
-      },
-      {
-        label: "你怎么依恋",
-        code: result.selfCode,
-        type: getType(result.selfCode),
-        profile: getProfile(result.selfCode),
-        paragraph: getProfile(result.selfCode).self_attachment
-      },
-      {
-        label: "你希望伴侣怎么依恋",
+        label: "你希望伴侣的依恋模式",
         code: result.partnerCode,
         type: getType(result.partnerCode),
         profile: getProfile(result.partnerCode),
         paragraph: getProfile(result.partnerCode).partner_expectation
+      },
+      {
+        label: "你自己的依恋模式",
+        code: result.selfCode,
+        type: getType(result.selfCode),
+        profile: getProfile(result.selfCode),
+        paragraph: getProfile(result.selfCode).self_attachment
       }
     ];
 
-    return layers.map((layer) => {
-      const character = primaryCharacter(layer.type);
+    return layers.map((layer, index) => {
+      const character = characterTextForType(layer.type);
       const image = getTypeIllustration(layer.type, layer.code);
       return [
-        '<article class="type-card">',
+        `<article class="type-card${index === 0 ? " priority" : ""}">`,
         '<div class="type-card-top">',
         '<div>',
         `<span class="type-label">${escapeHtml(layer.label)}</span>`,
@@ -349,16 +343,10 @@
         renderTypeArt(image, layer.code),
         "</div>",
         character ? `<p class="type-character">角色参考：${escapeHtml(character)}</p>` : '<p class="type-character muted">角色参考：待补充</p>',
-        `<p class="type-paragraph">${escapeHtml(shortenForCard(layer.paragraph || "这部分文案可以在 data/result_profiles.json 中补充。"))}</p>`,
+        `<p class="type-paragraph">${escapeHtml(layer.paragraph || "这部分文案可以在 data/result_profiles.json 中补充。")}</p>`,
         "</article>"
       ].join("");
     }).join("");
-  }
-
-  function shortenForCard(text) {
-    const normalized = String(text || "").replace(/\s+/g, " ").trim();
-    if (normalized.length <= 118) return normalized;
-    return `${normalized.slice(0, 118)}...`;
   }
 
   function renderTypeArt(image, fallback) {
@@ -383,13 +371,15 @@
     });
   }
 
-  function renderResultProfile(result, profile) {
+  function renderResultProfile(result) {
+    const partnerProfile = getProfile(result.partnerCode);
+    const selfProfile = getProfile(result.selfCode);
+    const gapProfile = partnerProfile.relationship_gap ? partnerProfile : getProfile(result.code);
     const blocks = [
-      profileBlock("综合画像", profile.main_profile || profile.summary),
-      profileBlock("你怎么依恋", getProfile(result.selfCode).self_attachment),
-      profileBlock("你希望伴侣怎么依恋", getProfile(result.partnerCode).partner_expectation),
-      profileBlock("关系差值", profile.relationship_gap),
-      profileBlock("支持偏好叠加", profile.support_overlay_hint)
+      profileBlock("你希望伴侣怎么依恋", partnerProfile.partner_expectation || partnerProfile.what_they_expect),
+      profileBlock("你怎么依恋", selfProfile.self_attachment || selfProfile.how_they_love),
+      profileBlock("关系差值", gapProfile.relationship_gap),
+      profileBlock("支持偏好叠加", partnerProfile.support_overlay_hint || selfProfile.support_overlay_hint)
     ].filter(Boolean).join("");
 
     els.profileGrid.innerHTML = blocks;
@@ -686,7 +676,7 @@
     if (tScore < 0) {
       symmetry = "你的给出和期待之间有强烈错位，某些维度里你想收到的东西，和你实际给出的方式并不在同一个节奏上。";
     } else if (tScore < 40) {
-      symmetry = "你的给出和期待之间有可见差值，关系并不是失衡到不可沟通，而是需要把具体需求说得更清楚。";
+      symmetry = "你的给出和期待之间有可见差值，这段关系还有沟通空间，重点是把具体需求说得更清楚。";
     }
 
     if (tDirection > 8) {
@@ -712,10 +702,11 @@
     return `你的支持偏好更偏${firstLabel}与${secondLabel}，说明你不一定只需要被劝或被解决，更容易通过${firstChannel}、${secondChannel}来感到被理解。`;
   }
 
-  function setupRoleArt(roles, result) {
+  function setupRoleArt(roles, result, roleLabel) {
     const items = getRoleArtItems(roles);
     roleArtItems = items;
     roleArtIndex = 0;
+    roleAffinityLabel = roleLabel || DEFAULT_ROLE_AFFINITY_LABEL;
     stopRoleArtCycle();
 
     if (!items.length) {
@@ -737,7 +728,7 @@
   function getRoleArtItems(roles) {
     return roles
       .map((role) => {
-        const src = roleImages[role] || roleImages[normalizeRoleName(role)] || "";
+        const src = getRoleImage(role);
         return src ? { role, src } : null;
       })
       .filter(Boolean);
@@ -749,19 +740,19 @@
     roleArtIndex = index % roleArtItems.length;
     const countText = roleArtItems.length > 1 ? `${roleArtIndex + 1}/${roleArtItems.length}` : "";
     els.roleArtName.textContent = countText ? `立绘 ${countText}` : "立绘";
-    renderRoleAffinity(item.role);
+    renderRoleAffinity(item.role, roleAffinityLabel);
     setSoftRoleImage(els.sideArtImage, item.src, els.artPlaceholder);
     setImage(els.resultAvatarImage, item.src, els.resultAvatarFallback);
   }
 
-  function renderRoleAffinity(roleText) {
+  function renderRoleAffinity(roleText, labelText) {
     if (!roleText) {
       els.resultRoles.innerHTML = "";
       els.resultRoles.classList.add("hidden");
       return;
     }
     els.resultRoles.innerHTML = [
-      '<span class="role-affinity-label">跟您的依恋方式相仿的人是：</span>',
+      `<span class="role-affinity-label">${escapeHtml(labelText || DEFAULT_ROLE_AFFINITY_LABEL)}</span>`,
       `<strong>${escapeHtml(roleText)}</strong>`
     ].join("");
     els.resultRoles.classList.remove("hidden");
@@ -828,8 +819,8 @@
     els.roleArtName.textContent = "";
   }
 
-  function setMainAvatar(type, result) {
-    const image = getTypeIllustration(type, result.code);
+  function setMainAvatar(type, code, result) {
+    const image = getTypeIllustration(type, code);
     if (image) {
       setImage(els.resultAvatarImage, image, els.resultAvatarFallback);
       return;
@@ -1396,7 +1387,7 @@
       tagline: `${title}：把亲近、行动和距离感组合成自己的关系节奏。`,
       main_profile: "这个类型的长分析还可以继续补充。",
       self_attachment: "你在关系里的给出方式需要结合 S、A、L 和 T 一起看：你如何表达特殊性、如何兑现行动、如何安排长期，都会影响别人读懂你的方式。",
-      partner_expectation: "你希望伴侣给你的不是抽象正确答案，而是一套能被你感知到的亲近方式：特殊性、行动和时间感最好能落在具体场景里。",
+      partner_expectation: "你希望伴侣给你一套能被你感知到的亲近方式：特殊性、行动和时间感最好能落在具体场景里。",
       relationship_gap: "关系差值提醒你：自己给出的方式和期待收到的方式，不一定天然相同。",
       support_overlay_hint: "支持偏好只解释你更吃哪种支持，不改变 SALT 类型。",
       share_text: `我的 SALT 是 ${code} ${title}。`
@@ -1433,12 +1424,30 @@
   }
 
   function rolesForType(type) {
-    const roles = type && (type.role_candidates || type.roles);
-    if (Array.isArray(roles)) return roles.filter(Boolean);
-    if (typeof roles === "string") {
-      return roles.split(/\s*(?:\/|、|，|,|；|;)\s*/).filter(Boolean);
-    }
-    return [];
+    if (!type) return [];
+    const seen = new Set();
+    const output = [];
+    const addRole = (role) => {
+      const value = String(role || "").trim();
+      const key = normalizeRoleName(value);
+      if (!value || seen.has(key)) return;
+      seen.add(key);
+      output.push(value);
+    };
+    const addRoles = (roles) => {
+      if (Array.isArray(roles)) {
+        roles.forEach(addRole);
+        return;
+      }
+      if (typeof roles === "string") {
+        roles.split(/\s*(?:\/|、|，|,|；|;)\s*/).forEach(addRole);
+      }
+    };
+    addRoles(type.role_candidates);
+    addRoles(type.roles);
+    addRoles(type.role_text);
+    addRole(type.character_name);
+    return output;
   }
 
   function primaryCharacter(type) {
@@ -1446,15 +1455,30 @@
     return (type && type.character_name) || roles[0] || "";
   }
 
+  function characterTextForType(type) {
+    if (!type) return "";
+    const roles = rolesForType(type);
+    if (roles.length) return roles.join(" / ");
+    if (type.role_text) return String(type.role_text).trim();
+    return String(type.character_name || "").trim();
+  }
+
   function getTypeIllustration(type, code) {
     const artKey = (type && type.art_key) || code;
     const manifestImage = getArtAsset("type_illustrations", artKey, "") || getArtAsset("type_illustrations", code, "");
     if (manifestImage) return manifestImage;
-    const character = primaryCharacter(type);
-    if (character && (roleImages[character] || roleImages[normalizeRoleName(character)])) {
-      return roleImages[character] || roleImages[normalizeRoleName(character)];
-    }
+    const roleImage = getTypeRoleImage(type);
+    if (roleImage) return roleImage;
     return getArtAsset("result_cards", "default", "") || getArtAsset("avatars", "default", "");
+  }
+
+  function getTypeRoleImage(type) {
+    return rolesForType(type).reduce((found, role) => found || getRoleImage(role), "");
+  }
+
+  function getRoleImage(role) {
+    const name = String(role || "").trim();
+    return name ? roleImages[name] || roleImages[normalizeRoleName(name)] || "" : "";
   }
 
   function normalizeRoleName(role) {

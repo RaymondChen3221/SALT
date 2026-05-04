@@ -573,10 +573,16 @@ button:focus-visible {
 }
 
 .type-label {
-  display: block;
-  color: var(--soft);
-  font-size: 0.76rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #06111d;
+  font-size: 0.9rem;
   font-weight: 800;
+  background: linear-gradient(90deg, var(--mint), var(--cyan));
+  box-shadow: 0 10px 24px rgba(110, 231, 183, 0.12);
 }
 
 .type-code {
@@ -637,11 +643,7 @@ button:focus-visible {
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.76;
-  display: -webkit-box;
-  overflow: hidden;
   overflow-wrap: break-word;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
 }
 
 .gap-panel {
