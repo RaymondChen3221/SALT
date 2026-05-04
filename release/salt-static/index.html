@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SALT 关系倾向测试</title>
+  <link rel="stylesheet" href="styles.css?v=20260504-13">
+  <script src="data/result_types.js?v=20260504-13" defer></script>
+  <script src="data/result_profiles.js?v=20260504-13" defer></script>
+  <script src="data/role_images.js?v=20260504-13" defer></script>
+  <script src="data/support_profiles.js?v=20260504-13" defer></script>
+  <script src="assets/art_manifest.js?v=20260504-13" defer></script>
+  <script src="questions.js?v=20260504-13" defer></script>
+  <script src="app.js?v=20260504-13" defer></script>
+</head>
+<body>
+  <div class="background-art" id="backgroundArt" aria-hidden="true"></div>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">SALT v4</p>
+        <h1>SALT 关系倾向测试</h1>
+      </div>
+      <div class="top-actions">
+        <span class="question-count" id="questionCount">0 / 44</span>
+        <button class="ghost-button" id="restartTopButton" type="button">重新开始</button>
+      </div>
+    </header>
+
+    <div class="progress-track" aria-hidden="true">
+      <span class="progress-fill" id="progressFill"></span>
+    </div>
+
+    <section class="workspace">
+      <aside class="overview-panel">
+        <div class="art-window" id="artWindow">
+          <img id="sideArtImage" alt="">
+          <div class="art-placeholder" id="artPlaceholder">
+            <span>SALT</span>
+          </div>
+          <div class="role-art-meta hidden" id="roleArtMeta">
+            <span id="roleArtName"></span>
+            <button class="role-art-switch" id="roleArtSwitch" type="button">切换</button>
+          </div>
+        </div>
+        <div class="axis-stack" aria-label="SALT 维度">
+          <span><strong>S</strong> 特殊性</span>
+          <span><strong>A</strong> 兑现力</span>
+          <span><strong>L</strong> 长程性</span>
+          <span><strong>T</strong> 双向性</span>
+        </div>
+      </aside>
+
+      <section class="glass-panel intro-panel" id="introPanel" aria-live="polite">
+        <div class="intro-hero">
+          <div class="intro-copy">
+            <p class="panel-kicker">SALT 关系倾向测试</p>
+            <h2>看见你的关系节奏。</h2>
+            <p>
+              有些人在关系里需要被特别记住，有些人更在意自由和松弛。<br>
+              SALT 会从特殊性、兑现力、长程性与双向性四条线索里，整理你的亲近节奏。<br>
+              你会看到自己怎么爱人，也会看到你希望伴侣怎么把你放在心上。
+            </p>
+          </div>
+          <div class="intro-mark" aria-hidden="true">
+            <span>S</span><span>A</span><span>L</span><span>T</span>
+          </div>
+        </div>
+
+        <div class="intro-axis-grid" aria-label="SALT 四个维度">
+          <article class="intro-axis-card">
+            <strong>S</strong>
+            <span>特殊性</span>
+            <p>你是否需要专属位置、私密暗号和被区别对待的确认。</p>
+            <div class="axis-code-pair"><b>U</b><em>专属</em><b>O</b><em>开放</em></div>
+          </article>
+          <article class="intro-axis-card">
+            <strong>A</strong>
+            <span>兑现力</span>
+            <p>在意能不能落成行动、信号、说明和修复。</p>
+            <div class="axis-code-pair"><b>D</b><em>兑现</em><b>I</b><em>内隐</em></div>
+          </article>
+          <article class="intro-axis-card">
+            <strong>L</strong>
+            <span>长程性</span>
+            <p>重要的人会不会被放进未来、日常和生活结构。</p>
+            <div class="axis-code-pair"><b>R</b><em>长程</em><b>N</b><em>当下</em></div>
+          </article>
+          <article class="intro-axis-card">
+            <strong>T</strong>
+            <span>双向性</span>
+            <p>你给出的方式和你期待收到的方式是否在同一节奏上。</p>
+            <div class="axis-code-pair"><b>M</b><em>双向</em><b>X</b><em>错位</em></div>
+          </article>
+        </div>
+
+        <div class="intro-showcase">
+          <div class="intro-section-title">
+            <span>角色参考</span>
+            <strong>不同 SALT 模式会对应不同的关系气质</strong>
+          </div>
+          <div class="intro-role-grid" id="introRoleGrid"></div>
+        </div>
+
+        <div class="panel-actions intro-actions">
+          <button class="primary-button" id="startButton" type="button">开始测试</button>
+        </div>
+      </section>
+
+      <section class="glass-panel quiz-panel" id="quizPanel" aria-live="polite">
+        <h2 class="question-text" id="questionText">题目载入中</h2>
+        <div class="option-grid" id="optionGrid"></div>
+        <div class="panel-actions quiz-actions">
+          <button class="ghost-button" id="restartQuizButton" type="button">重新开始</button>
+          <button class="primary-button back-primary-button" id="backButton" type="button">返回</button>
+        </div>
+      </section>
+
+      <section class="glass-panel result-panel hidden" id="resultPanel" aria-live="polite">
+        <div class="result-card" id="resultCard">
+          <div class="result-mode-grid" id="resultModeGrid"></div>
+
+          <div class="legacy-result-summary hidden" aria-hidden="true">
+            <div class="result-header">
+              <div class="result-avatar" id="resultAvatar">
+                <img id="resultAvatarImage" alt="">
+                <span id="resultAvatarFallback">SALT</span>
+              </div>
+              <div>
+                <p class="panel-kicker">你希望伴侣的依恋模式</p>
+                <div class="result-code" id="resultCode">UDRM</div>
+                <p class="legacy-code result-legacy-code" id="resultLegacyCode">SALT：S+A+L+T+</p>
+                <h2 class="result-title" id="resultTitle">结果标题</h2>
+              </div>
+            </div>
+
+            <p class="result-description" id="resultDescription"></p>
+            <p class="result-tagline hidden" id="resultTagline"></p>
+            <p class="result-roles hidden" id="resultRoles"></p>
+          </div>
+
+          <div class="result-section answer-code-section">
+            <div class="answer-code-line">
+              <span>答案码</span>
+              <code id="answerCodeText">生成中...</code>
+              <button class="tiny-text-button" id="toggleAnswerCodeButton" type="button">隐藏</button>
+              <button class="tiny-text-button" id="decodeToggleButton" type="button">解析</button>
+              <button class="tiny-text-button top-save-button" id="saveImageTopButton" type="button">保存图</button>
+            </div>
+            <div class="type-layer-grid hidden" id="typeLayerGrid"></div>
+          </div>
+
+          <div class="result-section dimension-overview-grid">
+            <section class="dimension-overview-card">
+              <h3>伴侣期待维度概览</h3>
+              <div class="score-list" id="scoreList"></div>
+            </section>
+            <section class="dimension-overview-card">
+              <h3>自我依恋模式概览</h3>
+              <div class="score-list" id="selfScoreList"></div>
+            </section>
+          </div>
+
+          <div class="result-section relationship-breakdown-section">
+            <h3>我会给出 / 我期待对方</h3>
+            <div class="comparison-list" id="comparisonList"></div>
+          </div>
+
+          <div class="result-section relationship-breakdown-section">
+            <h3>关系差值</h3>
+            <div id="gapCard"></div>
+          </div>
+
+          <div class="result-section">
+            <h3>支持偏好</h3>
+            <div class="support-ranking" id="supportRanking"></div>
+            <p class="support-analysis" id="supportAnalysis"></p>
+          </div>
+
+          <div class="result-section profile-section hidden" id="profileSection">
+            <h3>完整分析</h3>
+            <div class="profile-grid" id="profileGrid"></div>
+          </div>
+
+          <div class="decoder-panel hidden" id="decoderPanel">
+            <textarea id="answerCodeInput" rows="4" spellcheck="false" placeholder="粘贴 SALT1A 或 SALT1X 开头的答案码"></textarea>
+            <button class="primary-button compact-button" id="decodeButton" type="button">解析</button>
+            <pre id="decodeOutput"></pre>
+          </div>
+        </div>
+
+        <div class="panel-actions result-actions">
+          <button class="ghost-button" id="resultBackButton" type="button">返回修改</button>
+          <button class="ghost-button" id="restartResultButton" type="button">重新开始</button>
+          <button class="ghost-button" id="saveImageButton" type="button">保存结果图</button>
+          <button class="ghost-button" id="shareButton" type="button">分享结果</button>
+          <button class="primary-button" id="copyButton" type="button">复制结果文案</button>
+        </div>
+      </section>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

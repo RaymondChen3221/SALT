@@ -1,0 +1,25 @@
+window.SALT_ROLE_IMAGES_DATA = {
+  "version": "v3",
+  "basePath": "img/",
+  "images": {
+    "W": "img/W.png",
+    "三角初华": "img/三角初华.png",
+    "千早爱音": "img/千早爱音.png",
+    "印飞星": "img/印飞星.png",
+    "安和昴": "img/安和昴.png",
+    "平泽唯": "img/平泽唯.png",
+    "幽灵鲨": "img/幽灵鲨.png",
+    "德克萨斯": "img/德克萨斯.png",
+    "徐敏敏": "img/徐敏敏.png",
+    "杏山和纱": "img/杏山和纱.png",
+    "椎名真由理": "img/椎名真由理.png",
+    "河原木桃香": "img/河原木桃香.png",
+    "牧濑红莉栖": "img/牧濑红莉栖.png",
+    "能天使": "img/能天使.png",
+    "若叶睦": "img/若叶睦.png",
+    "要乐奈": "img/要乐奈.png",
+    "凯尔希": "img/凯尔希.png",
+    "高松灯": "img/高松灯.png",
+    "龚常胜": "img/龚常胜.png"
+  }
+};

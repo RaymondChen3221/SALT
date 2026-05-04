@@ -1,0 +1,33 @@
+{
+  "version": "v3",
+  "profiles": {
+    "practical": {
+      "id": "practical",
+      "label": "实用托底",
+      "badge": "practical",
+      "channel": "现实问题被推进",
+      "description": "你会通过资源、行动和具体解决感到被托住。"
+    },
+    "emotional": {
+      "id": "emotional",
+      "label": "情绪理解",
+      "badge": "emotional",
+      "channel": "情绪先被接住",
+      "description": "你会通过倾听、理解和不急着评判感到安全。"
+    },
+    "creative": {
+      "id": "creative",
+      "label": "共同创作",
+      "badge": "creative",
+      "channel": "一起做出具体的东西",
+      "description": "你会通过对方认真参与兴趣、作品或创作感到被看见。"
+    },
+    "presence": {
+      "id": "presence",
+      "label": "低压在场",
+      "badge": "presence",
+      "channel": "稳定低压地待在一起",
+      "description": "你会通过不压迫的陪伴和稳定出现感到安心。"
+    }
+  }
+}

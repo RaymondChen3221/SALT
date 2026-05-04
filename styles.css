@@ -913,6 +913,8 @@ body[data-screen="intro"] #restartTopButton {
   background:
     linear-gradient(145deg, rgba(251, 113, 133, 0.16), rgba(125, 211, 252, 0.18)),
     rgba(10, 18, 33, 0.32);
+  touch-action: pan-y;
+  user-select: none;
 }
 
 .result-mode-art img {
@@ -938,6 +940,25 @@ body[data-screen="intro"] #restartTopButton {
 .result-mode-art img.loaded + .result-mode-fallback,
 .result-mode-fallback.hidden {
   display: none;
+}
+
+.result-role-switch-hint {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-height: 26px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #06111d;
+  font-size: 0.72rem;
+  font-weight: 900;
+  background: linear-gradient(90deg, rgba(142, 243, 197, 0.96), rgba(125, 211, 252, 0.94));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
 }
 
 .result-mode-body {

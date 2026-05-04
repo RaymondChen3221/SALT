@@ -108,6 +108,7 @@
   let roleAffinityLabel = DEFAULT_ROLE_AFFINITY_LABEL;
   let lastResultData = null;
   let autoAdvanceTimer = 0;
+  let resultRoleSwipe = null;
 
   const questions = window.SALT_QUESTIONS || { main: [], support: [], all: [], scale: [] };
   const allQuestions = questions.all || (questions.main || []).concat(questions.support || []);
@@ -332,6 +333,7 @@
     if (els.resultModeGrid) {
       els.resultModeGrid.innerHTML = renderResultModeCards(result);
       hydrateResultModeImages(els.resultModeGrid);
+      bindResultRoleSwipe(els.resultModeGrid);
     }
     if (els.resultCode) els.resultCode.textContent = result.partnerDisplayCode;
     if (els.resultLegacyCode) els.resultLegacyCode.textContent = `SALT：${result.partnerCode}`;
@@ -426,6 +428,10 @@
     const selfType = getType(result.selfCode);
     const partnerProfile = getProfile(result.partnerCode);
     const selfProfile = getProfile(result.selfCode);
+    const partnerGallery = getRoleGallery(partnerType, result.partnerCode);
+    const selfGallery = getRoleGallery(selfType, result.selfCode);
+    const partnerRole = getSelectedRoleItem(result.partnerCode, partnerGallery);
+    const selfRole = getSelectedRoleItem(result.selfCode, selfGallery);
     return [
       renderResultModeCard({
         kind: "partner",
@@ -435,8 +441,10 @@
         type: partnerType,
         description: partnerType.description,
         paragraph: partnerProfile.partner_expectation || partnerProfile.tagline,
-        roles: characterTextForType(partnerType),
-        image: getTypeIllustration(partnerType, result.partnerCode)
+        roles: resultModeRoleText(partnerType, partnerGallery, partnerRole),
+        image: partnerRole ? partnerRole.src : getTypeIllustration(partnerType, result.partnerCode),
+        gallery: partnerGallery,
+        selectedRole: partnerRole
       }),
       renderResultModeCard({
         kind: "self",
@@ -446,18 +454,24 @@
         type: selfType,
         description: selfType.description,
         paragraph: selfProfile.self_attachment || selfProfile.tagline,
-        roles: characterTextForType(selfType),
-        image: getTypeIllustration(selfType, result.selfCode)
+        roles: resultModeRoleText(selfType, selfGallery, selfRole),
+        image: selfRole ? selfRole.src : getTypeIllustration(selfType, result.selfCode),
+        gallery: selfGallery,
+        selectedRole: selfRole
       })
     ].join("");
   }
 
   function renderResultModeCard(card) {
+    const gallery = Array.isArray(card.gallery) ? card.gallery : [];
+    const selectedIndex = card.selectedRole ? gallery.findIndex((item) => item.role === card.selectedRole.role) : 0;
+    const hasRoleSwitch = gallery.length > 1;
     return [
-      `<article class="result-mode-card ${escapeAttribute(card.kind)}">`,
-      '<div class="result-mode-art">',
+      `<article class="result-mode-card ${escapeAttribute(card.kind)}" data-code="${escapeAttribute(card.code)}" data-role-index="${Math.max(0, selectedIndex)}">`,
+      `<div class="result-mode-art" data-gallery="${hasRoleSwitch ? "true" : "false"}" aria-label="${hasRoleSwitch ? "左右滑动切换展示人物" : "结果立绘"}">`,
       card.image ? `<img src="${escapeAttribute(card.image)}" alt="">` : "",
       '<span class="result-mode-fallback">SALT</span>',
+      hasRoleSwitch ? `<span class="result-role-switch-hint">${escapeHtml(roleSwitchHint(Math.max(0, selectedIndex), gallery.length))}</span>` : "",
       "</div>",
       '<div class="result-mode-body">',
       `<p class="panel-kicker">${escapeHtml(card.label)}</p>`,
@@ -490,6 +504,90 @@
         if (fallback) fallback.classList.add("hidden");
       }
     });
+  }
+
+  function bindResultRoleSwipe(root) {
+    root.querySelectorAll(".result-mode-art[data-gallery='true']").forEach((art) => {
+      art.addEventListener("pointerdown", (event) => {
+        resultRoleSwipe = {
+          target: art,
+          x: event.clientX,
+          y: event.clientY
+        };
+        if (art.setPointerCapture) art.setPointerCapture(event.pointerId);
+      });
+      art.addEventListener("pointerup", (event) => {
+        if (!resultRoleSwipe || resultRoleSwipe.target !== art) return;
+        const dx = event.clientX - resultRoleSwipe.x;
+        const dy = event.clientY - resultRoleSwipe.y;
+        resultRoleSwipe = null;
+        if (Math.abs(dx) < 34 || Math.abs(dx) < Math.abs(dy)) return;
+        switchResultRole(art.closest(".result-mode-card"), dx < 0 ? 1 : -1);
+      });
+      art.addEventListener("pointercancel", () => {
+        resultRoleSwipe = null;
+      });
+    });
+  }
+
+  function switchResultRole(card, step) {
+    if (!card) return;
+    const code = card.dataset.code || "";
+    const type = getType(code);
+    const gallery = getRoleGallery(type, code);
+    if (gallery.length <= 1) return;
+    const currentIndex = Math.max(0, Number(card.dataset.roleIndex) || 0);
+    const nextIndex = (currentIndex + step + gallery.length) % gallery.length;
+    const item = gallery[nextIndex];
+    card.dataset.roleIndex = String(nextIndex);
+    state.selectedRoles[code] = item.role;
+    saveState();
+    updateResultModeCardRole(card, item, nextIndex, gallery.length);
+    if (lastResultData && code === lastResultData.partnerCode) {
+      syncPrimaryRoleArt(item);
+    }
+  }
+
+  function updateResultModeCardRole(card, item, index, count) {
+    const image = card.querySelector(".result-mode-art img");
+    const fallback = card.querySelector(".result-mode-fallback");
+    const hint = card.querySelector(".result-role-switch-hint");
+    const roles = card.querySelector(".result-mode-roles");
+    if (image) {
+      image.classList.remove("loaded", "hidden");
+      image.onload = () => {
+        image.classList.add("loaded");
+        if (fallback) fallback.classList.add("hidden");
+      };
+      image.onerror = () => {
+        image.classList.add("hidden");
+        if (fallback) fallback.classList.remove("hidden");
+      };
+      image.src = item.src;
+    }
+    if (hint) hint.textContent = roleSwitchHint(index, count);
+    if (roles) roles.textContent = `角色参考：当前展示 ${item.role} · 双人物标签`;
+  }
+
+  function syncPrimaryRoleArt(item) {
+    stopRoleArtCycle();
+    const index = roleArtItems.findIndex((roleItem) => roleItem.role === item.role);
+    if (index >= 0) roleArtIndex = index;
+    renderRoleAffinity(item.role, roleAffinityLabel);
+    setSoftRoleImage(els.sideArtImage, item.src, els.artPlaceholder);
+    setImage(els.resultAvatarImage, item.src, els.resultAvatarFallback);
+    if (els.roleArtName && roleArtItems.length > 1) {
+      els.roleArtName.textContent = `立绘 ${roleArtIndex + 1}/${roleArtItems.length}`;
+    }
+  }
+
+  function roleSwitchHint(index, count) {
+    return `滑动切换 ${index + 1}/${count}`;
+  }
+
+  function resultModeRoleText(type, gallery, selectedRole) {
+    if (gallery.length > 1 && selectedRole) return `当前展示 ${selectedRole.role} · 双人物标签`;
+    return characterTextForType(type);
   }
 
   function renderTypeLayerCards(result) {
@@ -1114,6 +1212,31 @@
       .filter(Boolean);
   }
 
+  function getRoleGallery(type, code) {
+    const roles = rolesForType(type);
+    if (roles.length < 2) return [];
+    const seen = new Set();
+    return roles.map((role) => {
+      const key = normalizeRoleName(role);
+      if (!key || seen.has(key)) return null;
+      seen.add(key);
+      const src = getRoleImage(role);
+      return src ? { role, src, code } : null;
+    }).filter(Boolean);
+  }
+
+  function getSelectedRoleItem(code, gallery) {
+    if (!gallery.length) return null;
+    const selected = state.selectedRoles && state.selectedRoles[code];
+    return gallery.find((item) => item.role === selected) || gallery[0];
+  }
+
+  function getSelectedTypeImage(type, code) {
+    const gallery = getRoleGallery(type, code);
+    const selected = getSelectedRoleItem(code, gallery);
+    return selected ? selected.src : getTypeIllustration(type, code);
+  }
+
   function renderRoleArtItem(index) {
     if (!roleArtItems.length) return;
     const item = roleArtItems[index % roleArtItems.length];
@@ -1321,8 +1444,8 @@
     const selfType = getType(result.selfCode);
     const partnerType = getType(result.partnerCode);
     const [partnerImage, selfImage] = await Promise.all([
-      loadCanvasImage(getTypeIllustration(partnerType, result.partnerCode)),
-      loadCanvasImage(getTypeIllustration(selfType, result.selfCode))
+      loadCanvasImage(getSelectedTypeImage(partnerType, result.partnerCode)),
+      loadCanvasImage(getSelectedTypeImage(selfType, result.selfCode))
     ]);
 
     const gradient = ctx.createLinearGradient(0, 0, width, height);
@@ -2058,6 +2181,7 @@
       answerCode: "",
       answerFingerprint: "",
       questionOrder: shuffledQuestionIds(),
+      selectedRoles: {},
       questionSet: questionSetSignature()
     };
   }
@@ -2075,6 +2199,7 @@
         answerCode: parsed.answerCode || "",
         answerFingerprint: parsed.answerFingerprint || "",
         questionOrder: Array.isArray(parsed.questionOrder) ? parsed.questionOrder : [],
+        selectedRoles: parsed.selectedRoles && typeof parsed.selectedRoles === "object" ? parsed.selectedRoles : {},
         questionSet: parsed.questionSet || ""
       };
     } catch (error) {
@@ -2164,6 +2289,12 @@
     ensureQuestionOrder();
     const orderedLength = displayQuestions().length || allQuestions.length || 1;
     state.current = Math.max(0, Math.min(orderedLength - 1, Number(state.current) || 0));
+    if (!state.selectedRoles || typeof state.selectedRoles !== "object") state.selectedRoles = {};
+    Object.keys(state.selectedRoles).forEach((code) => {
+      if (!CODES.includes(code) || !rolesForType(getType(code)).includes(state.selectedRoles[code])) {
+        delete state.selectedRoles[code];
+      }
+    });
     if (state.mode === "result" && !isComplete()) {
       state.mode = "quiz";
     }
