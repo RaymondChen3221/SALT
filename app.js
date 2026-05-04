@@ -284,7 +284,8 @@
   }
 
   function renderQuestion() {
-    const question = allQuestions[state.current] || allQuestions[0];
+    ensureQuestionOrder();
+    const question = currentQuestion();
     const selected = question ? state.answers[question.id] : undefined;
 
     document.body.dataset.screen = "quiz";
@@ -620,7 +621,7 @@
   }
 
   function selectAnswer(value) {
-    const question = allQuestions[state.current];
+    const question = currentQuestion();
     if (state.mode !== "quiz" || !question || !Number.isFinite(value)) return;
     state.answers[question.id] = value;
     state.answerCode = "";
@@ -638,27 +639,34 @@
   function startQuiz() {
     window.clearTimeout(autoAdvanceTimer);
     autoAdvanceTimer = 0;
+    if (state.mode === "intro" && Object.keys(state.answers).length === 0) {
+      state.questionOrder = shuffledQuestionIds();
+      state.current = 0;
+    }
+    ensureQuestionOrder();
     state.mode = "quiz";
-    state.current = Math.max(0, Math.min(allQuestions.length - 1, Number(state.current) || 0));
+    state.current = Math.max(0, Math.min(displayQuestions().length - 1, Number(state.current) || 0));
     saveState();
     renderQuestion();
   }
 
   function goNext() {
-    const question = allQuestions[state.current];
+    ensureQuestionOrder();
+    const ordered = displayQuestions();
+    const question = ordered[state.current];
     if (!question) return;
     if (!Object.prototype.hasOwnProperty.call(state.answers, question.id)) {
       showToast("先选择这一题的答案。");
       return;
     }
-    if (state.current < allQuestions.length - 1) {
+    if (state.current < ordered.length - 1) {
       state.current += 1;
       saveState();
       renderQuestion();
       return;
     }
     if (!isComplete()) {
-      const firstMissing = allQuestions.findIndex((item) => !Object.prototype.hasOwnProperty.call(state.answers, item.id));
+      const firstMissing = ordered.findIndex((item) => !Object.prototype.hasOwnProperty.call(state.answers, item.id));
       state.current = Math.max(0, firstMissing);
       saveState();
       showToast("还有题目没有回答。");
@@ -676,7 +684,8 @@
     autoAdvanceTimer = 0;
     if (state.mode === "result") {
       state.mode = "quiz";
-      state.current = Math.max(0, allQuestions.length - 1);
+      ensureQuestionOrder();
+      state.current = Math.max(0, displayQuestions().length - 1);
       saveState();
       renderQuestion();
       return;
@@ -2048,6 +2057,7 @@
       completedAt: "",
       answerCode: "",
       answerFingerprint: "",
+      questionOrder: shuffledQuestionIds(),
       questionSet: questionSetSignature()
     };
   }
@@ -2064,6 +2074,7 @@
         completedAt: parsed.completedAt || "",
         answerCode: parsed.answerCode || "",
         answerFingerprint: parsed.answerFingerprint || "",
+        questionOrder: Array.isArray(parsed.questionOrder) ? parsed.questionOrder : [],
         questionSet: parsed.questionSet || ""
       };
     } catch (error) {
@@ -2087,6 +2098,53 @@
     }
   }
 
+  function currentQuestion() {
+    ensureQuestionOrder();
+    return displayQuestions()[state.current] || displayQuestions()[0] || allQuestions[0];
+  }
+
+  function displayQuestions() {
+    ensureQuestionOrder();
+    const byId = new Map(allQuestions.map((question) => [question.id, question]));
+    return state.questionOrder.map((id) => byId.get(id)).filter(Boolean);
+  }
+
+  function ensureQuestionOrder() {
+    const ids = allQuestions.map((question) => question.id);
+    const idSet = new Set(ids);
+    const currentOrder = Array.isArray(state.questionOrder) ? state.questionOrder.filter((id) => idSet.has(id)) : [];
+    if (currentOrder.length === ids.length && new Set(currentOrder).size === ids.length) {
+      state.questionOrder = currentOrder;
+      return;
+    }
+    const remaining = ids.filter((id) => !currentOrder.includes(id));
+    state.questionOrder = currentOrder.concat(shuffleList(remaining));
+  }
+
+  function shuffledQuestionIds() {
+    return shuffleList(allQuestions.map((question) => question.id));
+  }
+
+  function shuffleList(items) {
+    const output = items.slice();
+    for (let index = output.length - 1; index > 0; index -= 1) {
+      const swapIndex = randomInt(index + 1);
+      const temp = output[index];
+      output[index] = output[swapIndex];
+      output[swapIndex] = temp;
+    }
+    return output;
+  }
+
+  function randomInt(max) {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const values = new Uint32Array(1);
+      window.crypto.getRandomValues(values);
+      return values[0] % max;
+    }
+    return Math.floor(Math.random() * max);
+  }
+
   function sanitizeState() {
     const currentQuestionSet = questionSetSignature();
     if (state.questionSet !== currentQuestionSet) {
@@ -2103,7 +2161,9 @@
         state.answers[id] = Number(state.answers[id]);
       }
     });
-    state.current = Math.max(0, Math.min(allQuestions.length - 1, Number(state.current) || 0));
+    ensureQuestionOrder();
+    const orderedLength = displayQuestions().length || allQuestions.length || 1;
+    state.current = Math.max(0, Math.min(orderedLength - 1, Number(state.current) || 0));
     if (state.mode === "result" && !isComplete()) {
       state.mode = "quiz";
     }
