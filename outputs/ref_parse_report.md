@@ -33,7 +33,7 @@
 - `S-A+L-T-` 随缘行动型 from `Sheet1` row 14; roles: 安和昴
 - `S-A-L+T+` 旧人同路型 from `Sheet1` row 15; roles: 椎名真由理
 - `S-A-L+T-` 远方投射型 from `Sheet1` row 16; roles: 河原木桃香
-- `S-A-L-T+` 舒服同好型 from `Sheet1` row 17; roles: 古关忧/平泽唯
+- `S-A-L-T+` 舒服同好型 from `Sheet1` row 17; roles: 平泽唯
 - `S-A-L-T-` 断线自由型 from `Sheet1` row 18; roles: 徐敏敏
 - `S+A-L+T-` S+A-L+T- from `Sheet1` row 21; roles: 若叶睦 / 丰川祥子 / 三角初华部分面向
 - `S+A-L-T-` S+A-L-T- from `Sheet1` row 22; roles: 要乐奈 / 星野懒散面

@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SALT 关系倾向测试</title>
-  <link rel="stylesheet" href="styles.css?v=20260504-3">
-  <script src="data/result_types.js?v=20260504-3" defer></script>
-  <script src="data/result_profiles.js?v=20260504-3" defer></script>
-  <script src="data/role_images.js?v=20260504-3" defer></script>
-  <script src="data/support_profiles.js?v=20260504-3" defer></script>
-  <script src="assets/art_manifest.js?v=20260504-3" defer></script>
-  <script src="questions.js?v=20260504-3" defer></script>
-  <script src="app.js?v=20260504-3" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260504-8">
+  <script src="data/result_types.js?v=20260504-8" defer></script>
+  <script src="data/result_profiles.js?v=20260504-8" defer></script>
+  <script src="data/role_images.js?v=20260504-8" defer></script>
+  <script src="data/support_profiles.js?v=20260504-8" defer></script>
+  <script src="assets/art_manifest.js?v=20260504-8" defer></script>
+  <script src="questions.js?v=20260504-8" defer></script>
+  <script src="app.js?v=20260504-8" defer></script>
 </head>
 <body>
   <div class="background-art" id="backgroundArt" aria-hidden="true"></div>
@@ -72,21 +72,25 @@
             <strong>S</strong>
             <span>特殊性</span>
             <p>你是否需要专属位置、私密暗号和被区别对待的确认。</p>
+            <div class="axis-code-pair"><b>U</b><em>专属</em><b>O</b><em>开放</em></div>
           </article>
           <article class="intro-axis-card">
             <strong>A</strong>
             <span>兑现力</span>
             <p>在意能不能落成行动、信号、说明和修复。</p>
+            <div class="axis-code-pair"><b>D</b><em>兑现</em><b>I</b><em>内隐</em></div>
           </article>
           <article class="intro-axis-card">
             <strong>L</strong>
             <span>长程性</span>
             <p>重要的人会不会被放进未来、日常和生活结构。</p>
+            <div class="axis-code-pair"><b>R</b><em>长程</em><b>N</b><em>当下</em></div>
           </article>
           <article class="intro-axis-card">
             <strong>T</strong>
             <span>双向性</span>
             <p>你给出的方式和你期待收到的方式是否在同一节奏上。</p>
+            <div class="axis-code-pair"><b>M</b><em>双向</em><b>X</b><em>错位</em></div>
           </article>
         </div>
 
@@ -106,28 +110,34 @@
       <section class="glass-panel quiz-panel" id="quizPanel" aria-live="polite">
         <h2 class="question-text" id="questionText">题目载入中</h2>
         <div class="option-grid" id="optionGrid"></div>
-        <div class="panel-actions">
+        <div class="panel-actions quiz-actions">
+          <button class="ghost-button" id="restartQuizButton" type="button">重新开始</button>
           <button class="primary-button back-primary-button" id="backButton" type="button">返回</button>
         </div>
       </section>
 
       <section class="glass-panel result-panel hidden" id="resultPanel" aria-live="polite">
         <div class="result-card" id="resultCard">
-          <div class="result-header">
-            <div class="result-avatar" id="resultAvatar">
-              <img id="resultAvatarImage" alt="">
-              <span id="resultAvatarFallback">SALT</span>
-            </div>
-            <div>
-              <p class="panel-kicker">你希望伴侣的依恋模式</p>
-              <div class="result-code" id="resultCode">S+A+L+T+</div>
-              <h2 class="result-title" id="resultTitle">结果标题</h2>
-            </div>
-          </div>
+          <div class="result-mode-grid" id="resultModeGrid"></div>
 
-          <p class="result-description" id="resultDescription"></p>
-          <p class="result-tagline hidden" id="resultTagline"></p>
-          <p class="result-roles hidden" id="resultRoles"></p>
+          <div class="legacy-result-summary hidden" aria-hidden="true">
+            <div class="result-header">
+              <div class="result-avatar" id="resultAvatar">
+                <img id="resultAvatarImage" alt="">
+                <span id="resultAvatarFallback">SALT</span>
+              </div>
+              <div>
+                <p class="panel-kicker">你希望伴侣的依恋模式</p>
+                <div class="result-code" id="resultCode">UDRM</div>
+                <p class="legacy-code result-legacy-code" id="resultLegacyCode">SALT：S+A+L+T+</p>
+                <h2 class="result-title" id="resultTitle">结果标题</h2>
+              </div>
+            </div>
+
+            <p class="result-description" id="resultDescription"></p>
+            <p class="result-tagline hidden" id="resultTagline"></p>
+            <p class="result-roles hidden" id="resultRoles"></p>
+          </div>
 
           <div class="result-section">
             <div class="answer-code-line">
@@ -136,20 +146,26 @@
               <button class="tiny-text-button" id="toggleAnswerCodeButton" type="button">隐藏</button>
               <button class="tiny-text-button" id="decodeToggleButton" type="button">解析</button>
             </div>
-            <div class="type-layer-grid" id="typeLayerGrid"></div>
+            <div class="type-layer-grid hidden" id="typeLayerGrid"></div>
           </div>
 
-          <div class="result-section">
-            <h3>伴侣期待维度概览</h3>
-            <div class="score-list" id="scoreList"></div>
+          <div class="result-section dimension-overview-grid">
+            <section class="dimension-overview-card">
+              <h3>伴侣期待维度概览</h3>
+              <div class="score-list" id="scoreList"></div>
+            </section>
+            <section class="dimension-overview-card">
+              <h3>自我依恋模式概览</h3>
+              <div class="score-list" id="selfScoreList"></div>
+            </section>
           </div>
 
-          <div class="result-section">
+          <div class="result-section relationship-breakdown-section">
             <h3>我会给出 / 我期待对方</h3>
             <div class="comparison-list" id="comparisonList"></div>
           </div>
 
-          <div class="result-section">
+          <div class="result-section relationship-breakdown-section">
             <h3>关系差值</h3>
             <div id="gapCard"></div>
           </div>

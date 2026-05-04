@@ -24,7 +24,12 @@
     "S-A-L-T+",
     "S-A-L-T-"
   ];
-  const INTRO_CODES = ["S+A+L+T+", "S+A-L-T+", "S-A+L-T+", "S-A-L-T+"];
+  const DISPLAY_LETTERS = {
+    S: { "+": "U", "-": "O" },
+    A: { "+": "D", "-": "I" },
+    L: { "+": "R", "-": "N" },
+    T: { "+": "M", "-": "X" }
+  };
 
   const FALLBACK_TITLES = {
     "S+A+L+T+": "誓约同行型",
@@ -137,6 +142,7 @@
     els.questionText = document.getElementById("questionText");
     els.optionGrid = document.getElementById("optionGrid");
     els.backButton = document.getElementById("backButton");
+    els.restartQuizButton = document.getElementById("restartQuizButton");
     els.restartTopButton = document.getElementById("restartTopButton");
     els.restartResultButton = document.getElementById("restartResultButton");
     els.resultBackButton = document.getElementById("resultBackButton");
@@ -147,12 +153,15 @@
     els.decodeToggleButton = document.getElementById("decodeToggleButton");
     els.decodeButton = document.getElementById("decodeButton");
     els.resultCode = document.getElementById("resultCode");
+    els.resultLegacyCode = document.getElementById("resultLegacyCode");
     els.resultTitle = document.getElementById("resultTitle");
     els.resultDescription = document.getElementById("resultDescription");
     els.resultTagline = document.getElementById("resultTagline");
     els.resultRoles = document.getElementById("resultRoles");
+    els.resultModeGrid = document.getElementById("resultModeGrid");
     els.typeLayerGrid = document.getElementById("typeLayerGrid");
     els.scoreList = document.getElementById("scoreList");
+    els.selfScoreList = document.getElementById("selfScoreList");
     els.comparisonList = document.getElementById("comparisonList");
     els.gapCard = document.getElementById("gapCard");
     els.supportRanking = document.getElementById("supportRanking");
@@ -183,6 +192,7 @@
 
     if (els.startButton) els.startButton.addEventListener("click", startQuiz);
     els.backButton.addEventListener("click", goBack);
+    if (els.restartQuizButton) els.restartQuizButton.addEventListener("click", restart);
     els.resultBackButton.addEventListener("click", () => {
       state.mode = "quiz";
       state.current = Math.max(0, allQuestions.length - 1);
@@ -316,18 +326,27 @@
     applyBackground("result");
     updateProgress(true);
 
-    els.resultCode.textContent = result.partnerCode;
-    els.resultTitle.textContent = partnerType.title;
-    els.resultDescription.textContent = partnerType.description || "这个类型还没有描述，可以在 data/result_types.json 中补充。";
-    els.resultTagline.textContent = partnerProfile.partner_expectation || partnerProfile.tagline || "";
-    els.resultTagline.classList.toggle("hidden", !els.resultTagline.textContent);
+    if (els.resultModeGrid) {
+      els.resultModeGrid.innerHTML = renderResultModeCards(result);
+      hydrateResultModeImages(els.resultModeGrid);
+    }
+    if (els.resultCode) els.resultCode.textContent = result.partnerDisplayCode;
+    if (els.resultLegacyCode) els.resultLegacyCode.textContent = `SALT：${result.partnerCode}`;
+    if (els.resultTitle) els.resultTitle.textContent = partnerType.title;
+    if (els.resultDescription) els.resultDescription.textContent = partnerType.description || "这个类型还没有描述，可以在 data/result_types.json 中补充。";
+    if (els.resultTagline) {
+      els.resultTagline.textContent = partnerProfile.partner_expectation || partnerProfile.tagline || "";
+      els.resultTagline.classList.toggle("hidden", !els.resultTagline.textContent);
+    }
     renderRoleAffinity(primaryCharacter(partnerType), partnerRoleLabel);
     setupRoleArt(partnerRoles, result, partnerRoleLabel);
     setMainAvatar(partnerType, result.partnerCode, result);
 
-    els.typeLayerGrid.innerHTML = renderTypeLayerCards(result);
-    hydrateInlineImages(els.typeLayerGrid);
-    els.scoreList.innerHTML = renderScoreRows(result);
+    if (els.typeLayerGrid) {
+      els.typeLayerGrid.innerHTML = "";
+    }
+    els.scoreList.innerHTML = renderScoreRows(result, "partner");
+    if (els.selfScoreList) els.selfScoreList.innerHTML = renderScoreRows(result, "self");
     els.comparisonList.innerHTML = renderComparisonRows(result);
     els.gapCard.innerHTML = renderGapCard(result);
     els.supportRanking.innerHTML = renderSupportRanking(result.supportRanking);
@@ -337,28 +356,123 @@
   }
 
   function renderIntroRoles() {
-    return INTRO_CODES.map((code) => {
-      const type = getType(code);
-      const character = primaryCharacter(type) || characterTextForType(type);
-      const image = getTypeIllustration(type, code);
+    const cards = getIntroRoleItems().map((item) => {
       return [
         '<article class="intro-role-card">',
         '<div class="intro-role-art">',
-        image ? `<img src="${escapeAttribute(image)}" alt="">` : "",
+        item.image ? `<img src="${escapeAttribute(item.image)}" alt="">` : "",
         '<span class="intro-role-fallback">SALT</span>',
         "</div>",
         '<div class="intro-role-copy">',
-        `<span>${escapeHtml(code)}</span>`,
-        `<strong>${escapeHtml(type.title)}</strong>`,
-        character ? `<p>${escapeHtml(character)}</p>` : "<p>角色待补充</p>",
+        `<span class="intro-role-display-code">${escapeHtml(item.displayCode)}</span>`,
+        `<strong>${escapeHtml(item.title)}</strong>`,
+        `<p>${escapeHtml(item.role)}</p>`,
+        `<em>SALT：${escapeHtml(item.code)}</em>`,
         "</div>",
         "</article>"
       ].join("");
     }).join("");
+    const duplicateCards = cards.replaceAll('<article class="intro-role-card">', '<article class="intro-role-card" aria-hidden="true">');
+    return [
+      '<div class="intro-role-track">',
+      cards,
+      duplicateCards,
+      "</div>"
+    ].join("");
+  }
+
+  function getIntroRoleItems() {
+    const seen = new Set();
+    return CODES.flatMap((code) => {
+      const type = getType(code);
+      return rolesForType(type).map((role) => {
+        const key = `${normalizeRoleName(role)}|${code}`;
+        if (seen.has(key)) return null;
+        seen.add(key);
+        return {
+          code,
+          displayCode: displayCodeForCode(code),
+          title: type.title,
+          role,
+          image: getRoleImage(role) || getTypeIllustration(type, code)
+        };
+      }).filter(Boolean);
+    });
   }
 
   function hydrateIntroImages(root) {
     root.querySelectorAll(".intro-role-art img").forEach((image) => {
+      const fallback = image.nextElementSibling;
+      image.addEventListener("load", () => {
+        image.classList.add("loaded");
+        if (fallback) fallback.classList.add("hidden");
+      });
+      image.addEventListener("error", () => {
+        image.classList.add("hidden");
+        if (fallback) fallback.classList.remove("hidden");
+      });
+      if (image.complete && image.naturalWidth > 0) {
+        image.classList.add("loaded");
+        if (fallback) fallback.classList.add("hidden");
+      }
+    });
+  }
+
+  function renderResultModeCards(result) {
+    const partnerType = getType(result.partnerCode);
+    const selfType = getType(result.selfCode);
+    const partnerProfile = getProfile(result.partnerCode);
+    const selfProfile = getProfile(result.selfCode);
+    return [
+      renderResultModeCard({
+        kind: "partner",
+        label: "你希望伴侣的依恋模式",
+        code: result.partnerCode,
+        displayCode: result.partnerDisplayCode,
+        type: partnerType,
+        description: partnerType.description,
+        paragraph: partnerProfile.partner_expectation || partnerProfile.tagline,
+        roles: characterTextForType(partnerType),
+        image: getTypeIllustration(partnerType, result.partnerCode)
+      }),
+      renderResultModeCard({
+        kind: "self",
+        label: "你自己的依恋模式",
+        code: result.selfCode,
+        displayCode: result.selfDisplayCode,
+        type: selfType,
+        description: selfType.description,
+        paragraph: selfProfile.self_attachment || selfProfile.tagline,
+        roles: characterTextForType(selfType),
+        image: getTypeIllustration(selfType, result.selfCode)
+      })
+    ].join("");
+  }
+
+  function renderResultModeCard(card) {
+    return [
+      `<article class="result-mode-card ${escapeAttribute(card.kind)}">`,
+      '<div class="result-mode-art">',
+      card.image ? `<img src="${escapeAttribute(card.image)}" alt="">` : "",
+      '<span class="result-mode-fallback">SALT</span>',
+      "</div>",
+      '<div class="result-mode-body">',
+      `<p class="panel-kicker">${escapeHtml(card.label)}</p>`,
+      `<h2>${escapeHtml(card.type.title)}</h2>`,
+      '<div class="result-mode-code-row">',
+      `<strong>${escapeHtml(card.displayCode)}</strong>`,
+      `<span>SALT：${escapeHtml(card.code)}</span>`,
+      "</div>",
+      card.description ? `<p class="result-mode-description">${escapeHtml(card.description)}</p>` : "",
+      card.roles ? `<p class="result-mode-roles">角色参考：${escapeHtml(card.roles)}</p>` : "",
+      card.paragraph ? `<p class="result-mode-paragraph">${escapeHtml(card.paragraph)}</p>` : "",
+      "</div>",
+      "</article>"
+    ].join("");
+  }
+
+  function hydrateResultModeImages(root) {
+    root.querySelectorAll(".result-mode-art img").forEach((image) => {
       const fallback = image.nextElementSibling;
       image.addEventListener("load", () => {
         image.classList.add("loaded");
@@ -380,6 +494,7 @@
       {
         label: "你希望伴侣的依恋模式",
         code: result.partnerCode,
+        displayCode: result.partnerDisplayCode,
         type: getType(result.partnerCode),
         profile: getProfile(result.partnerCode),
         paragraph: getProfile(result.partnerCode).partner_expectation
@@ -387,6 +502,7 @@
       {
         label: "你自己的依恋模式",
         code: result.selfCode,
+        displayCode: result.selfDisplayCode,
         type: getType(result.selfCode),
         profile: getProfile(result.selfCode),
         paragraph: getProfile(result.selfCode).self_attachment
@@ -401,8 +517,11 @@
         '<div class="type-card-top">',
         '<div>',
         `<span class="type-label">${escapeHtml(layer.label)}</span>`,
-        `<strong class="type-code">${escapeHtml(layer.code)}</strong>`,
         `<h3 class="type-title">${escapeHtml(layer.type.title)}</h3>`,
+        '<div class="type-code-row">',
+        `<strong class="type-code">${escapeHtml(layer.displayCode)}</strong>`,
+        `<span class="legacy-code type-legacy-code">SALT：${escapeHtml(layer.code)}</span>`,
+        "</div>",
         "</div>",
         renderTypeArt(image, layer.code),
         "</div>",
@@ -627,6 +746,9 @@
     const code = buildCode(axes.S.sign, axes.A.sign, axes.L.sign, tSign);
     const selfCode = buildCode(axes.S.selfSign, axes.A.selfSign, axes.L.selfSign, tSign);
     const partnerCode = buildCode(axes.S.otherSign, axes.A.otherSign, axes.L.otherSign, tSign);
+    const displayCode = displayCodeForCode(code);
+    const selfDisplayCode = displayCodeForCode(selfCode);
+    const partnerDisplayCode = displayCodeForCode(partnerCode);
     const supportScores = calculateSupportScores(answers);
     const supportRanking = Object.keys(supportScores)
       .map((key) => ({ key, score: supportScores[key], profile: supportProfiles[key] || {} }))
@@ -636,6 +758,9 @@
       code,
       selfCode,
       partnerCode,
+      displayCode,
+      selfDisplayCode,
+      partnerDisplayCode,
       S: axes.S,
       A: axes.A,
       L: axes.L,
@@ -651,6 +776,21 @@
 
   function buildCode(sSign, aSign, lSign, tSign) {
     return `S${sSign}A${aSign}L${lSign}T${tSign}`;
+  }
+
+  function displayCodeForCode(code) {
+    const match = /^S([+-])A([+-])L([+-])T([+-])$/.exec(String(code || ""));
+    if (!match) return String(code || "");
+    return [
+      DISPLAY_LETTERS.S[match[1]],
+      DISPLAY_LETTERS.A[match[2]],
+      DISPLAY_LETTERS.L[match[3]],
+      DISPLAY_LETTERS.T[match[4]]
+    ].join("");
+  }
+
+  function formatCodePair(displayCode, saltCode) {
+    return `${displayCode}（SALT：${saltCode}）`;
   }
 
   function calculateSupportScores(answers) {
@@ -678,14 +818,15 @@
     return rawAnswer(question, answers) * direction;
   }
 
-  function renderScoreRows(result) {
+  function renderScoreRows(result, mode) {
+    const source = mode === "self" ? "self" : "other";
     const rows = [
-      { label: "S 特殊性", value: result.S.other, badge: "specialness", fallback: "S" },
-      { label: "A 兑现力", value: result.A.other, badge: "action", fallback: "A" },
-      { label: "L 长程性", value: result.L.other, badge: "long_range", fallback: "L" },
-      { label: "T 双向性", value: result.tScore, badge: "two_wayness", fallback: "T" }
+      { title: "特殊性", value: result.S[source], left: "U", right: "O", leftText: "专属", rightText: "开放" },
+      { title: "兑现力", value: result.A[source], left: "D", right: "I", leftText: "兑现", rightText: "内隐" },
+      { title: "长程性", value: result.L[source], left: "R", right: "N", leftText: "长程", rightText: "当下" },
+      { title: "双向性", value: result.tScore, left: "M", right: "X", leftText: "双向", rightText: "错位" }
     ];
-    return rows.map((row) => renderMeterRow(row.label, row.value, row.badge, row.fallback)).join("");
+    return rows.map((row) => renderMeterRow(row)).join("");
   }
 
   function renderComparisonRows(result) {
@@ -731,12 +872,19 @@
     ].join("");
   }
 
-  function renderMeterRow(label, value, badge, fallback) {
+  function renderMeterRow(row) {
     return [
       '<div class="score-row">',
-      `<div class="score-label">${artBadge(badge, fallback)}<span>${escapeHtml(label)}</span></div>`,
-      `<div class="meter"><span class="meter-marker" style="left: ${scoreToPercent(value)}"></span></div>`,
-      `<div class="score-value">${escapeHtml(getBandLabel(value))}</div>`,
+      '<div class="score-label">',
+      `<strong>${escapeHtml(row.title)}</strong>`,
+      `<span>${escapeHtml(row.leftText)} / ${escapeHtml(row.rightText)}</span>`,
+      "</div>",
+      '<div class="dimension-meter">',
+      `<span class="axis-code-chip positive">${escapeHtml(row.left)}</span>`,
+      `<div class="meter"><span class="meter-marker" style="left: ${axisScoreToPercent(row.value)}"></span></div>`,
+      `<span class="axis-code-chip negative">${escapeHtml(row.right)}</span>`,
+      "</div>",
+      `<div class="score-value">${escapeHtml(getBandLabel(row.value))}</div>`,
       "</div>"
     ].join("");
   }
@@ -995,7 +1143,7 @@
       const result = calculateResult();
       const code = await getVisibleAnswerCode(result);
       const canvas = await buildShareCanvas(result, code);
-      await downloadCanvas(canvas, `SALT-${result.partnerCode}-${Date.now()}.png`);
+      await downloadCanvas(canvas, `SALT-${result.partnerDisplayCode}-${Date.now()}.png`);
       showToast("结果图已保存。");
     } catch (error) {
       showToast("保存结果图失败。");
@@ -1009,9 +1157,9 @@
     const supportLabel = topSupport && topSupport.profile ? topSupport.profile.label : "";
     return [
       "SALT 关系倾向测试",
-      `你希望伴侣的依恋模式：${result.partnerCode} ${partnerType.title}`,
+      `你希望伴侣的依恋模式：${formatCodePair(result.partnerDisplayCode, result.partnerCode)} ${partnerType.title}`,
       partnerType.description ? `伴侣期待：${partnerType.description}` : "",
-      `你自己的依恋模式：${result.selfCode} ${selfType.title}`,
+      `你自己的依恋模式：${formatCodePair(result.selfDisplayCode, result.selfCode)} ${selfType.title}`,
       selfType.description ? `自我依恋：${selfType.description}` : "",
       supportLabel ? `支持偏好：${supportLabel}` : "",
       `答案码：${answerCode}`
@@ -1045,10 +1193,14 @@
     ctx.font = "700 34px Microsoft YaHei, sans-serif";
     ctx.fillText("SALT 关系倾向测试", 104, 136);
     ctx.fillStyle = "#f7fbff";
-    ctx.font = "900 86px Microsoft YaHei, sans-serif";
-    ctx.fillText(result.partnerCode, 104, 238);
-    ctx.font = "800 52px Microsoft YaHei, sans-serif";
-    ctx.fillText(partnerType.title, 104, 310);
+    ctx.font = "900 72px Microsoft YaHei, sans-serif";
+    ctx.fillText(partnerType.title, 104, 232);
+    ctx.fillStyle = "#8ef3c5";
+    ctx.font = "900 48px Microsoft YaHei, sans-serif";
+    ctx.fillText(result.partnerDisplayCode, 104, 300);
+    ctx.fillStyle = "rgba(231,238,247,0.68)";
+    ctx.font = "700 28px Microsoft YaHei, sans-serif";
+    ctx.fillText(`SALT：${result.partnerCode}`, 260, 300);
 
     if (image) {
       drawContainedImage(ctx, image, 790, 118, 280, 300);
@@ -1056,8 +1208,8 @@
       drawImagePlaceholder(ctx, 790, 118, 280, 300, "SALT");
     }
 
-    drawShareTypeRow(ctx, 104, 430, "你希望伴侣的依恋模式", result.partnerCode, partnerType.title);
-    drawShareTypeRow(ctx, 104, 610, "你自己的依恋模式", result.selfCode, selfType.title);
+    drawShareTypeRow(ctx, 104, 430, "你希望伴侣的依恋模式", result.partnerDisplayCode, result.partnerCode, partnerType.title);
+    drawShareTypeRow(ctx, 104, 610, "你自己的依恋模式", result.selfDisplayCode, result.selfCode, selfType.title);
 
     ctx.fillStyle = "#f7fbff";
     ctx.font = "800 34px Microsoft YaHei, sans-serif";
@@ -1084,7 +1236,7 @@
     return canvas;
   }
 
-  function drawShareTypeRow(ctx, x, y, label, code, title) {
+  function drawShareTypeRow(ctx, x, y, label, displayCode, saltCode, title) {
     ctx.fillStyle = "rgba(10,18,33,0.42)";
     roundedRect(ctx, x, y, 990, 124, 18);
     ctx.fill();
@@ -1092,8 +1244,14 @@
     ctx.font = "700 28px Microsoft YaHei, sans-serif";
     ctx.fillText(label, x + 28, y + 44);
     ctx.fillStyle = "#f7fbff";
-    ctx.font = "900 44px Microsoft YaHei, sans-serif";
-    ctx.fillText(`${code}  ${title}`, x + 28, y + 96);
+    ctx.font = "900 46px Microsoft YaHei, sans-serif";
+    ctx.fillText(title, x + 28, y + 96);
+    ctx.fillStyle = "#8ef3c5";
+    ctx.font = "900 28px Microsoft YaHei, sans-serif";
+    ctx.fillText(displayCode, x + 610, y + 92);
+    ctx.fillStyle = "rgba(231,238,247,0.62)";
+    ctx.font = "700 22px Microsoft YaHei, sans-serif";
+    ctx.fillText(`SALT：${saltCode}`, x + 720, y + 92);
   }
 
   function roundedRect(ctx, x, y, width, height, radius) {
@@ -1223,7 +1381,10 @@
       },
       code: resultData.code,
       selfCode: resultData.selfCode,
-      partnerCode: resultData.partnerCode
+      partnerCode: resultData.partnerCode,
+      displayCode: resultData.displayCode,
+      selfDisplayCode: resultData.selfDisplayCode,
+      partnerDisplayCode: resultData.partnerDisplayCode
     };
   }
 
@@ -1268,7 +1429,10 @@
       ],
       c: payload.code,
       sc: payload.selfCode,
-      pc: payload.partnerCode
+      pc: payload.partnerCode,
+      dc: payload.displayCode,
+      sdc: payload.selfDisplayCode,
+      pdc: payload.partnerDisplayCode
     };
   }
 
@@ -1293,6 +1457,9 @@
       code: compact.c || "",
       selfCode: compact.sc || "",
       partnerCode: compact.pc || "",
+      displayCode: compact.dc || displayCodeForCode(compact.c || ""),
+      selfDisplayCode: compact.sdc || displayCodeForCode(compact.sc || ""),
+      partnerDisplayCode: compact.pdc || displayCodeForCode(compact.pc || ""),
       questionSet: compact.q || ""
     };
   }
@@ -1678,6 +1845,10 @@
 
   function scoreToPercent(value) {
     return `${((clamp(value) + 100) / 2).toFixed(2)}%`;
+  }
+
+  function axisScoreToPercent(value) {
+    return `${((100 - clamp(value)) / 2).toFixed(2)}%`;
   }
 
   function getBandLabel(value) {
