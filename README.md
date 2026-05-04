@@ -10,13 +10,13 @@
 - `app.js`：答题流程、计分、结果展示、答案码、复制、分享、保存结果图。
 - `data/result_types.json`：短结果、类型名、REF 角色映射和角色候选。
 - `data/result_types.js`：本地 `file://` 运行用 JS 桥接数据。
-- `data/result_profiles.json`：长篇结果文案，包括综合画像、Self-SALT、Partner-SALT、关系差值和支持偏好叠加。
+- `data/result_profiles.json`：长篇结果文案，包括 Self-SALT、Partner-SALT、关系差值和支持偏好叠加。
 - `data/result_profiles.js`：本地 `file://` 运行用 JS 桥接数据。
 - `data/support_profiles.json`：支持偏好副表分析，不影响 SALT 类型码。
 - `data/support_profiles.js`：本地 `file://` 运行用 JS 桥接数据。
 - `data/role_images.json` / `data/role_images.js`：角色名到 `img/` 图片的映射。
 - `assets/art_manifest.json` / `assets/art_manifest.js`：美术资源槽位。
-- `docs/scoring.md`：Main SALT、Self-SALT、Partner-SALT、T 和答案码说明。
+- `docs/scoring.md`：Self-SALT、Partner-SALT、T 和答案码说明。
 - `docs/question_design.md`：v4 题目配对与反向题设计说明。
 - `docs/github_pages.md`：GitHub Pages 发布说明。
 - `tools/parse_ref_xlsx.py`：解析 `REF.xlsx` 的工具，不会修改 Excel。
@@ -30,11 +30,12 @@
 
 ## v4 结果层
 
-结果页会显示三层结果：
+结果页优先显示两层结果：
 
-- 综合 SALT：使用 Self / Other 平均后的 S、A、L，加上 T_score。
-- 你怎么依恋：Self-SALT，使用 SelfS / SelfA / SelfL，加上同一个 T 状态。
 - 你希望伴侣怎么依恋：Partner-SALT，使用 OtherS / OtherA / OtherL，加上同一个 T 状态。
+- 你怎么依恋：Self-SALT，使用 SelfS / SelfA / SelfL，加上同一个 T 状态。
+
+Self / Other 平均后的内部码仍保留在答案 payload 中，方便旧数据兼容和调试，但不作为结果页主展示。
 
 支持偏好只作为副分析显示，不影响 16 种 SALT 类型。
 
@@ -111,7 +112,7 @@ v4 支持这些字段：`code`、`title`、`description`、`character_name`、`c
 
 ## 答案码
 
-结果页会显示答案码，并写入复制文案和保存的结果图。答案码编码 44 个具体选项、完成时间、综合 SALT、Self-SALT、Partner-SALT 和核心分数。
+结果页会显示答案码，并写入复制文案和保存的结果图。答案码编码 44 个具体选项、完成时间、内部平均码、Self-SALT、Partner-SALT 和核心分数。
 
 - `SALT1A.`：可用 Web Crypto 时使用 AES-GCM。
 - `SALT1X.`：不可用时使用本地可逆混淆和校验和。

@@ -5,6 +5,7 @@
   const ANSWER_CODE_PREFIX_AES = "SALT1A.";
   const ANSWER_CODE_PREFIX_XOR = "SALT1X.";
   const ANSWER_CODE_KEY = "SALT v4 local answer code key";
+  const DEFAULT_ROLE_AFFINITY_LABEL = "与你的依恋模式相仿的人是：";
   const CODES = [
     "S+A+L+T+",
     "S+A+L+T-",
@@ -98,6 +99,7 @@
   let roleArtIndex = 0;
   let roleArtTimer = 0;
   let roleArtFadeTimer = 0;
+  let roleAffinityLabel = DEFAULT_ROLE_AFFINITY_LABEL;
   let lastResultData = null;
 
   const questions = window.SALT_QUESTIONS || { main: [], support: [], all: [], scale: [] };
@@ -593,9 +595,9 @@
 
   function renderScoreRows(result) {
     const rows = [
-      { label: "S 特殊性", value: result.S.score, badge: "specialness", fallback: "S" },
-      { label: "A 兑现力", value: result.A.score, badge: "action", fallback: "A" },
-      { label: "L 长程性", value: result.L.score, badge: "long_range", fallback: "L" },
+      { label: "S 特殊性", value: result.S.other, badge: "specialness", fallback: "S" },
+      { label: "A 兑现力", value: result.A.other, badge: "action", fallback: "A" },
+      { label: "L 长程性", value: result.L.other, badge: "long_range", fallback: "L" },
       { label: "T 双向性", value: result.tScore, badge: "two_wayness", fallback: "T" }
     ];
     return rows.map((row) => renderMeterRow(row.label, row.value, row.badge, row.fallback)).join("");
@@ -908,7 +910,7 @@
       const result = calculateResult();
       const code = await getVisibleAnswerCode(result);
       const canvas = await buildShareCanvas(result, code);
-      await downloadCanvas(canvas, `SALT-${result.code}-${Date.now()}.png`);
+      await downloadCanvas(canvas, `SALT-${result.partnerCode}-${Date.now()}.png`);
       showToast("结果图已保存。");
     } catch (error) {
       showToast("保存结果图失败。");
@@ -916,19 +918,17 @@
   }
 
   function buildShareText(result, answerCode) {
-    const mainType = getType(result.code);
     const selfType = getType(result.selfCode);
     const partnerType = getType(result.partnerCode);
     const topSupport = result.supportRanking[0];
     const supportLabel = topSupport && topSupport.profile ? topSupport.profile.label : "";
-    const profile = getProfile(result.code);
     return [
       "SALT 关系倾向测试",
-      `综合 SALT：${result.code} ${mainType.title}`,
-      `你怎么依恋：${result.selfCode} ${selfType.title}`,
-      `你希望伴侣怎么依恋：${result.partnerCode} ${partnerType.title}`,
+      `你希望伴侣的依恋模式：${result.partnerCode} ${partnerType.title}`,
+      partnerType.description ? `伴侣期待：${partnerType.description}` : "",
+      `你自己的依恋模式：${result.selfCode} ${selfType.title}`,
+      selfType.description ? `自我依恋：${selfType.description}` : "",
       supportLabel ? `支持偏好：${supportLabel}` : "",
-      profile.share_text || "",
       `答案码：${answerCode}`
     ].filter(Boolean).join("\n");
   }
@@ -940,11 +940,10 @@
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
-    const mainType = getType(result.code);
     const selfType = getType(result.selfCode);
     const partnerType = getType(result.partnerCode);
     const topSupport = result.supportRanking[0];
-    const image = await loadCanvasImage(getTypeIllustration(mainType, result.code));
+    const image = await loadCanvasImage(getTypeIllustration(partnerType, result.partnerCode));
 
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, "#08111f");
@@ -962,9 +961,9 @@
     ctx.fillText("SALT 关系倾向测试", 104, 136);
     ctx.fillStyle = "#f7fbff";
     ctx.font = "900 86px Microsoft YaHei, sans-serif";
-    ctx.fillText(result.code, 104, 238);
+    ctx.fillText(result.partnerCode, 104, 238);
     ctx.font = "800 52px Microsoft YaHei, sans-serif";
-    ctx.fillText(mainType.title, 104, 310);
+    ctx.fillText(partnerType.title, 104, 310);
 
     if (image) {
       drawContainedImage(ctx, image, 790, 118, 280, 300);
@@ -972,31 +971,30 @@
       drawImagePlaceholder(ctx, 790, 118, 280, 300, "SALT");
     }
 
-    drawShareTypeRow(ctx, 104, 430, "综合 SALT", result.code, mainType.title);
-    drawShareTypeRow(ctx, 104, 600, "你怎么依恋", result.selfCode, selfType.title);
-    drawShareTypeRow(ctx, 104, 770, "你希望伴侣怎么依恋", result.partnerCode, partnerType.title);
+    drawShareTypeRow(ctx, 104, 430, "你希望伴侣的依恋模式", result.partnerCode, partnerType.title);
+    drawShareTypeRow(ctx, 104, 610, "你自己的依恋模式", result.selfCode, selfType.title);
 
     ctx.fillStyle = "#f7fbff";
     ctx.font = "800 34px Microsoft YaHei, sans-serif";
-    ctx.fillText("关系差值", 104, 990);
+    ctx.fillText("关系差值", 104, 840);
     ctx.fillStyle = "rgba(231,238,247,0.78)";
     ctx.font = "400 30px Microsoft YaHei, sans-serif";
-    drawWrappedCanvasText(ctx, getTDirectionText(result.tScore, result.tDirection), 104, 1044, 990, 44, 4);
+    drawWrappedCanvasText(ctx, getTDirectionText(result.tScore, result.tDirection), 104, 894, 990, 44, 4);
 
     const supportLabel = topSupport && topSupport.profile ? topSupport.profile.label : "待补充";
     ctx.fillStyle = "#8ef3c5";
     ctx.font = "800 32px Microsoft YaHei, sans-serif";
-    ctx.fillText(`支持偏好：${supportLabel}`, 104, 1230);
+    ctx.fillText(`支持偏好：${supportLabel}`, 104, 1120);
 
     ctx.fillStyle = "rgba(10,18,33,0.54)";
-    roundedRect(ctx, 104, 1290, 990, 232, 18);
+    roundedRect(ctx, 104, 1180, 990, 342, 18);
     ctx.fill();
     ctx.fillStyle = "#8ef3c5";
     ctx.font = "800 26px Microsoft YaHei, sans-serif";
-    ctx.fillText("答案码", 132, 1342);
+    ctx.fillText("答案码", 132, 1232);
     ctx.fillStyle = "#f7fbff";
     ctx.font = "24px Consolas, monospace";
-    drawWrappedCanvasText(ctx, answerCode, 132, 1390, 930, 32, 4);
+    drawWrappedCanvasText(ctx, answerCode, 132, 1280, 930, 32, 7);
 
     return canvas;
   }
@@ -1333,13 +1331,13 @@
       normalized[code] = fallbackType(code);
     });
     const inputTypes = data && data.types;
+    if (Array.isArray(data && data.rows)) {
+      data.rows.forEach((item) => addType(normalized, item));
+    }
     if (Array.isArray(inputTypes)) {
       inputTypes.forEach((item) => addType(normalized, item));
     } else if (inputTypes && typeof inputTypes === "object") {
       Object.keys(inputTypes).forEach((code) => addType(normalized, Object.assign({ code }, inputTypes[code])));
-    }
-    if (Array.isArray(data && data.rows)) {
-      data.rows.forEach((item) => addType(normalized, item));
     }
     return normalized;
   }

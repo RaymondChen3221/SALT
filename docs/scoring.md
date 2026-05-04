@@ -18,7 +18,7 @@ scoredValue = rawAnswer * direction
 
 `direction: 1` 是正向题，`direction: -1` 是反向题。T 双向性也使用反向处理后的 `scoredValue`，不使用原始答案。
 
-## Main SALT
+## Internal Average Code
 
 主表共 36 题：
 
@@ -39,7 +39,7 @@ A = (SelfA + OtherA) / 2
 L = (SelfL + OtherL) / 2
 ```
 
-综合 SALT 使用平均后的 `S / A / L` 与同一个 `T_score`。
+平均后的 `S / A / L` 与同一个 `T_score` 会形成内部平均码。它保留在答案 payload 中用于兼容和调试，但结果页不再把它作为主结果展示。
 
 ## Self-SALT
 
@@ -106,7 +106,7 @@ Presence = sum(presence raw answers) / 4 * 100
 
 ## Answer Code
 
-结果页会显示“答案码”，它编码本次 44 个具体答案、完成时间、综合 SALT、Self-SALT、Partner-SALT 和核心分数。
+结果页会显示“答案码”，它编码本次 44 个具体答案、完成时间、内部平均码、Self-SALT、Partner-SALT 和核心分数。
 
 - `SALT1A.`：浏览器支持 `crypto.subtle` 且处于安全上下文时，使用 AES-GCM 和本地静态 key 加密。
 - `SALT1X.`：Web Crypto 不可用时，使用 XOR-stream 加校验和做本地可逆混淆。

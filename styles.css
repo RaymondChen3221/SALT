@@ -564,6 +564,13 @@ button:focus-visible {
   padding: 15px;
 }
 
+.type-card.priority {
+  background:
+    radial-gradient(circle at 84% 0%, rgba(142, 243, 197, 0.18), transparent 32%),
+    linear-gradient(145deg, rgba(14, 28, 48, 0.58), rgba(28, 48, 66, 0.34));
+  box-shadow: inset 3px 0 0 rgba(126, 245, 194, 0.82);
+}
+
 .type-card-top {
   grid-area: head;
   display: grid;
