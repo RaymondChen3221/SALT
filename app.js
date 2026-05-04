@@ -148,6 +148,7 @@
     els.resultBackButton = document.getElementById("resultBackButton");
     els.copyButton = document.getElementById("copyButton");
     els.saveImageButton = document.getElementById("saveImageButton");
+    els.saveImageTopButton = document.getElementById("saveImageTopButton");
     els.shareButton = document.getElementById("shareButton");
     els.toggleAnswerCodeButton = document.getElementById("toggleAnswerCodeButton");
     els.decodeToggleButton = document.getElementById("decodeToggleButton");
@@ -203,6 +204,7 @@
     els.restartResultButton.addEventListener("click", restart);
     els.copyButton.addEventListener("click", copyResult);
     els.saveImageButton.addEventListener("click", saveResultImage);
+    if (els.saveImageTopButton) els.saveImageTopButton.addEventListener("click", saveResultImage);
     els.shareButton.addEventListener("click", shareResult);
     els.toggleAnswerCodeButton.addEventListener("click", toggleAnswerCode);
     els.decodeToggleButton.addEventListener("click", toggleDecoder);
@@ -819,31 +821,124 @@
   }
 
   function renderScoreRows(result, mode) {
+    return getDimensionRows(result, mode).map((row) => renderMeterRow(row)).join("");
+  }
+
+  function getDimensionRows(result, mode) {
     const source = mode === "self" ? "self" : "other";
-    const rows = [
-      { title: "特殊性", value: result.S[source], left: "U", right: "O", leftText: "专属", rightText: "开放" },
-      { title: "兑现力", value: result.A[source], left: "D", right: "I", leftText: "兑现", rightText: "内隐" },
-      { title: "长程性", value: result.L[source], left: "R", right: "N", leftText: "长程", rightText: "当下" },
-      { title: "双向性", value: result.tScore, left: "M", right: "X", leftText: "双向", rightText: "错位" }
+    return [
+      { title: "特殊性", value: result.S[source], left: "U", right: "O", leftText: "专属", rightText: "开放", positiveLabel: "强专属", negativeLabel: "弱专属" },
+      { title: "兑现力", value: result.A[source], left: "D", right: "I", leftText: "兑现", rightText: "内隐", positiveLabel: "强兑现", negativeLabel: "弱兑现" },
+      { title: "长程性", value: result.L[source], left: "R", right: "N", leftText: "长程", rightText: "当下", positiveLabel: "强长程", negativeLabel: "弱长程" },
+      { title: "双向性", value: result.tScore, left: "M", right: "X", leftText: "双向", rightText: "错位", positiveLabel: "强双向", negativeLabel: "强错位" }
     ];
-    return rows.map((row) => renderMeterRow(row)).join("");
   }
 
   function renderComparisonRows(result) {
-    return [
-      { label: "特殊性", self: result.S.self, other: result.S.other },
-      { label: "兑现力", self: result.A.self, other: result.A.other },
-      { label: "长程性", self: result.L.self, other: result.L.other }
-    ].map((row) => [
+    return getComparisonRows(result).map((row) => [
       '<div class="comparison-row">',
-      `<div class="comparison-label">${escapeHtml(row.label)}</div>`,
-      '<div class="comparison-values">',
-      miniMeter("我会给出", row.self),
-      miniMeter("我期待对方", row.other),
+      '<div class="comparison-label">',
+      `<strong>${escapeHtml(row.title)}</strong>`,
+      `<span>${escapeHtml(row.axisText)}</span>`,
       "</div>",
-      `<div class="score-value">${escapeHtml(getGapLabel(row.other - row.self))}</div>`,
+      '<div class="comparison-values">',
+      comparisonMode("我会给出", row.selfText, "self"),
+      comparisonMode("我期待对方", row.otherText, "other"),
+      "</div>",
+      `<div class="comparison-summary ${escapeAttribute(row.tone)}">${escapeHtml(row.summary)}</div>`,
       "</div>"
     ].join("")).join("");
+  }
+
+  function getComparisonRows(result) {
+    return [
+      { axis: "S", title: "特殊性", axisText: "专属 / 开放", self: result.S.self, other: result.S.other },
+      { axis: "A", title: "兑现力", axisText: "兑现 / 内隐", self: result.A.self, other: result.A.other },
+      { axis: "L", title: "长程性", axisText: "长程 / 当下", self: result.L.self, other: result.L.other }
+    ].map((row) => {
+      const gap = row.other - row.self;
+      return {
+        ...row,
+        selfText: describeAxisValue(row.axis, "self", row.self),
+        otherText: describeAxisValue(row.axis, "other", row.other),
+        summary: describeAxisGap(row.axis, gap),
+        tone: gap > 8 ? "expect" : gap < -8 ? "give" : "balanced"
+      };
+    });
+  }
+
+  function describeAxisValue(axis, side, value) {
+    const level = value >= 30 ? "high" : value <= -30 ? "low" : "mid";
+    const copy = {
+      S: {
+        self: {
+          high: "我会主动把伴侣放在特别位置",
+          mid: "我会按关系状态给出适度专属感",
+          low: "我对伴侣不太习惯特殊对待"
+        },
+        other: {
+          high: "期待对方对自己更特殊",
+          mid: "希望对方给我适度的特殊确认",
+          low: "不太要求对方把我特殊对待"
+        }
+      },
+      A: {
+        self: {
+          high: "我会把在意落实成行动",
+          mid: "我会在关键处给出可见回应",
+          low: "我表达在意更容易停在心里"
+        },
+        other: {
+          high: "期待对方用行动证明在意",
+          mid: "希望对方在关键处有回应",
+          low: "能接受对方行动少一点"
+        }
+      },
+      L: {
+        self: {
+          high: "我会把伴侣放进长期安排",
+          mid: "我会视关系稳定度逐步规划",
+          low: "我更习惯按当下状态相处"
+        },
+        other: {
+          high: "期待对方把我纳入长期计划",
+          mid: "希望关系自然进入对方生活",
+          low: "不太要求对方立刻规划未来"
+        }
+      }
+    };
+    return copy[axis][side][level];
+  }
+
+  function describeAxisGap(axis, gap) {
+    const copy = {
+      S: {
+        expect: "期待对方对自己更特殊",
+        slightExpect: "略期待对方给更多特殊确认",
+        give: "自己更容易主动给专属感",
+        slightGive: "自己会多给一点特殊位置",
+        balanced: "专属感给出和期待接近"
+      },
+      A: {
+        expect: "期待对方更主动兑现",
+        slightExpect: "略期待对方行动更明确",
+        give: "自己更容易主动兑现",
+        slightGive: "自己会多承担一点行动回应",
+        balanced: "行动给出和期待接近"
+      },
+      L: {
+        expect: "期待对方更多纳入未来",
+        slightExpect: "略期待对方给长期信号",
+        give: "自己更容易规划长期",
+        slightGive: "自己会多考虑长期安排",
+        balanced: "长期感给出和期待接近"
+      }
+    };
+    if (gap > 30) return copy[axis].expect;
+    if (gap > 8) return copy[axis].slightExpect;
+    if (gap < -30) return copy[axis].give;
+    if (gap < -8) return copy[axis].slightGive;
+    return copy[axis].balanced;
   }
 
   function renderSupportRanking(ranking) {
@@ -861,18 +956,43 @@
   }
 
   function renderGapCard(result) {
+    const vector = getGapVector(result);
     return [
-      '<article class="gap-panel">',
-      '<div class="gap-metrics">',
-      `<span><em>T_score</em><strong>${roundScore(result.tScore)}</strong></span>`,
-      `<span><em>T_direction</em><strong>${roundScore(result.tDirection)}</strong></span>`,
+      `<article class="gap-panel gap-${escapeAttribute(vector.direction)}">`,
+      '<div class="gap-vector-head">',
+      '<span>我会给出</span>',
+      `<strong>${escapeHtml(vector.title)}</strong>`,
+      '<span>我期待对方</span>',
       "</div>",
-      `<p>${escapeHtml(getTDirectionText(result.tScore, result.tDirection))}</p>`,
+      '<div class="gap-vector-track">',
+      '<i></i>',
+      `<b style="--gap-width: ${escapeAttribute(vector.width)}"></b>`,
+      "</div>",
+      '<div class="gap-vector-summary">',
+      `<span>${escapeHtml(vector.directionLabel)}</span>`,
+      `<span>${escapeHtml(vector.intensityLabel)}</span>`,
+      "</div>",
+      `<p>${escapeHtml(vector.copy)}</p>`,
       "</article>"
     ].join("");
   }
 
+  function getGapVector(result) {
+    const direction = result.tDirection > 8 ? "expect" : result.tDirection < -8 ? "give" : "balanced";
+    const width = `${Math.min(46, Math.max(direction === "balanced" ? 8 : 12, Math.abs(result.tDirection) * 0.72)).toFixed(1)}%`;
+    const intensityLabel = result.tScore >= 70 ? "偏差很轻" : result.tScore >= 40 ? "可见偏差" : result.tScore >= 0 ? "明显偏差" : "强烈错位";
+    const title = direction === "expect" ? "期待端更重" : direction === "give" ? "给出端更重" : "双向较平衡";
+    const directionLabel = direction === "expect" ? "矢量指向：我期待对方" : direction === "give" ? "矢量指向：我会给出" : "矢量接近中心";
+    const copy = direction === "expect"
+      ? "你的期待端更重，容易希望对方先给出确认、行动或长期信号。箭头越往右，越说明你需要把期待说得更具体。"
+      : direction === "give"
+        ? "你的给出端更重，容易先承担、先解释、先把关系接住。箭头越往左，越需要留意自己有没有把需求压低。"
+        : "你的给出和期待大致同频，真正需要看的不是谁更多，而是哪一个维度最容易让你不安。";
+    return { direction, width, intensityLabel, title, directionLabel, copy };
+  }
+
   function renderMeterRow(row) {
+    const state = getDimensionState(row);
     return [
       '<div class="score-row">',
       '<div class="score-label">',
@@ -884,9 +1004,16 @@
       `<div class="meter"><span class="meter-marker" style="left: ${axisScoreToPercent(row.value)}"></span></div>`,
       `<span class="axis-code-chip negative">${escapeHtml(row.right)}</span>`,
       "</div>",
-      `<div class="score-value">${escapeHtml(getBandLabel(row.value))}</div>`,
+      `<div class="score-state ${escapeAttribute(state.tone)}">${escapeHtml(state.label)}</div>`,
       "</div>"
     ].join("");
+  }
+
+  function getDimensionState(row) {
+    const score = clamp(row.value);
+    if (score >= 30) return { label: row.positiveLabel, tone: "positive" };
+    if (score <= -30) return { label: row.negativeLabel, tone: "negative" };
+    return { label: "中立", tone: "neutral" };
   }
 
   function miniMeter(label, value) {
@@ -894,6 +1021,15 @@
       '<div class="mini-meter">',
       `<span>${escapeHtml(label)} · ${escapeHtml(getBandLabel(value))}</span>`,
       `<div class="mini-track"><span class="mini-fill" style="width: ${scoreToPercent(value)}"></span></div>`,
+      "</div>"
+    ].join("");
+  }
+
+  function comparisonMode(label, text, kind) {
+    return [
+      `<div class="comparison-mode ${escapeAttribute(kind)}">`,
+      `<span>${escapeHtml(label)}</span>`,
+      `<strong>${escapeHtml(text)}</strong>`,
       "</div>"
     ].join("");
   }
@@ -1168,15 +1304,17 @@
 
   async function buildShareCanvas(result, answerCode) {
     const width = 1200;
-    const height = 1640;
+    const height = 1980;
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
     const selfType = getType(result.selfCode);
     const partnerType = getType(result.partnerCode);
-    const topSupport = result.supportRanking[0];
-    const image = await loadCanvasImage(getTypeIllustration(partnerType, result.partnerCode));
+    const [partnerImage, selfImage] = await Promise.all([
+      loadCanvasImage(getTypeIllustration(partnerType, result.partnerCode)),
+      loadCanvasImage(getTypeIllustration(selfType, result.selfCode))
+    ]);
 
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, "#08111f");
@@ -1191,67 +1329,220 @@
 
     ctx.fillStyle = "#8ef3c5";
     ctx.font = "700 34px Microsoft YaHei, sans-serif";
-    ctx.fillText("SALT 关系倾向测试", 104, 136);
-    ctx.fillStyle = "#f7fbff";
-    ctx.font = "900 72px Microsoft YaHei, sans-serif";
-    ctx.fillText(partnerType.title, 104, 232);
-    ctx.fillStyle = "#8ef3c5";
-    ctx.font = "900 48px Microsoft YaHei, sans-serif";
-    ctx.fillText(result.partnerDisplayCode, 104, 300);
-    ctx.fillStyle = "rgba(231,238,247,0.68)";
-    ctx.font = "700 28px Microsoft YaHei, sans-serif";
-    ctx.fillText(`SALT：${result.partnerCode}`, 260, 300);
+    ctx.fillText("SALT 关系倾向测试", 104, 126);
 
-    if (image) {
-      drawContainedImage(ctx, image, 790, 118, 280, 300);
-    } else {
-      drawImagePlaceholder(ctx, 790, 118, 280, 300, "SALT");
-    }
+    drawShareModeCard(ctx, 104, 166, 990, 230, {
+      label: "你希望伴侣的模式",
+      displayCode: result.partnerDisplayCode,
+      saltCode: result.partnerCode,
+      title: partnerType.title,
+      subtitle: partnerType.description || "",
+      image: partnerImage
+    });
+    drawShareModeCard(ctx, 104, 426, 990, 230, {
+      label: "你自己的模式",
+      displayCode: result.selfDisplayCode,
+      saltCode: result.selfCode,
+      title: selfType.title,
+      subtitle: selfType.description || "",
+      image: selfImage
+    });
 
-    drawShareTypeRow(ctx, 104, 430, "你希望伴侣的依恋模式", result.partnerDisplayCode, result.partnerCode, partnerType.title);
-    drawShareTypeRow(ctx, 104, 610, "你自己的依恋模式", result.selfDisplayCode, result.selfCode, selfType.title);
-
-    ctx.fillStyle = "#f7fbff";
-    ctx.font = "800 34px Microsoft YaHei, sans-serif";
-    ctx.fillText("关系差值", 104, 840);
-    ctx.fillStyle = "rgba(231,238,247,0.78)";
-    ctx.font = "400 30px Microsoft YaHei, sans-serif";
-    drawWrappedCanvasText(ctx, getTDirectionText(result.tScore, result.tDirection), 104, 894, 990, 44, 4);
-
-    const supportLabel = topSupport && topSupport.profile ? topSupport.profile.label : "待补充";
-    ctx.fillStyle = "#8ef3c5";
-    ctx.font = "800 32px Microsoft YaHei, sans-serif";
-    ctx.fillText(`支持偏好：${supportLabel}`, 104, 1120);
-
-    ctx.fillStyle = "rgba(10,18,33,0.54)";
-    roundedRect(ctx, 104, 1180, 990, 342, 18);
-    ctx.fill();
-    ctx.fillStyle = "#8ef3c5";
-    ctx.font = "800 26px Microsoft YaHei, sans-serif";
-    ctx.fillText("答案码", 132, 1232);
-    ctx.fillStyle = "#f7fbff";
-    ctx.font = "24px Consolas, monospace";
-    drawWrappedCanvasText(ctx, answerCode, 132, 1280, 930, 32, 7);
+    drawCanvasDimensionCard(ctx, 104, 710, 480, 360, "伴侣期待维度概览", getDimensionRows(result, "partner"));
+    drawCanvasDimensionCard(ctx, 614, 710, 480, 360, "自我依恋模式概览", getDimensionRows(result, "self"));
+    drawCanvasComparison(ctx, 104, 1118, 990, 318, getComparisonRows(result));
+    drawCanvasGapVector(ctx, 104, 1484, 990, 194, getGapVector(result));
+    drawCanvasAnswerCode(ctx, 104, 1724, 990, 172, answerCode);
 
     return canvas;
   }
 
-  function drawShareTypeRow(ctx, x, y, label, displayCode, saltCode, title) {
+  function drawShareModeCard(ctx, x, y, width, height, item) {
     ctx.fillStyle = "rgba(10,18,33,0.42)";
-    roundedRect(ctx, x, y, 990, 124, 18);
+    roundedRect(ctx, x, y, width, height, 22);
     ctx.fill();
-    ctx.fillStyle = "rgba(231,238,247,0.66)";
-    ctx.font = "700 28px Microsoft YaHei, sans-serif";
-    ctx.fillText(label, x + 28, y + 44);
-    ctx.fillStyle = "#f7fbff";
-    ctx.font = "900 46px Microsoft YaHei, sans-serif";
-    ctx.fillText(title, x + 28, y + 96);
     ctx.fillStyle = "#8ef3c5";
-    ctx.font = "900 28px Microsoft YaHei, sans-serif";
-    ctx.fillText(displayCode, x + 610, y + 92);
+    ctx.font = "800 27px Microsoft YaHei, sans-serif";
+    ctx.fillText(item.label, x + 30, y + 48);
+    ctx.fillStyle = "#f7fbff";
+    ctx.font = "900 58px Microsoft YaHei, sans-serif";
+    ctx.fillText(item.title, x + 30, y + 112);
+    ctx.fillStyle = "#8ef3c5";
+    ctx.font = "900 34px Microsoft YaHei, sans-serif";
+    ctx.fillText(item.displayCode, x + 30, y + 162);
     ctx.fillStyle = "rgba(231,238,247,0.62)";
     ctx.font = "700 22px Microsoft YaHei, sans-serif";
-    ctx.fillText(`SALT：${saltCode}`, x + 720, y + 92);
+    ctx.fillText(`SALT：${item.saltCode}`, x + 172, y + 160);
+    ctx.fillStyle = "rgba(231,238,247,0.82)";
+    ctx.font = "700 25px Microsoft YaHei, sans-serif";
+    drawWrappedCanvasText(ctx, item.subtitle, x + 30, y + 202, width - 286, 32, 2);
+
+    if (item.image) {
+      drawContainedImage(ctx, item.image, x + width - 214, y + 18, 168, height - 36);
+    } else {
+      drawImagePlaceholder(ctx, x + width - 214, y + 18, 168, height - 36, "SALT");
+    }
+  }
+
+  function drawCanvasDimensionCard(ctx, x, y, width, height, title, rows) {
+    ctx.fillStyle = "rgba(10,18,33,0.42)";
+    roundedRect(ctx, x, y, width, height, 20);
+    ctx.fill();
+    ctx.fillStyle = "#f7fbff";
+    ctx.font = "800 29px Microsoft YaHei, sans-serif";
+    ctx.fillText(title, x + 24, y + 48);
+    rows.forEach((row, index) => {
+      const rowY = y + 88 + index * 62;
+      const state = getDimensionState(row);
+      drawCanvasDimensionRow(ctx, x + 24, rowY, width - 48, row, state);
+    });
+  }
+
+  function drawCanvasDimensionRow(ctx, x, y, width, row, state) {
+    ctx.fillStyle = "rgba(8,17,31,0.35)";
+    roundedRect(ctx, x, y, width, 46, 12);
+    ctx.fill();
+    ctx.fillStyle = "#f7fbff";
+    ctx.font = "800 22px Microsoft YaHei, sans-serif";
+    ctx.fillText(row.title, x + 14, y + 29);
+    drawCanvasCodeChip(ctx, x + 120, y + 8, row.left, "#7dd3fc", "#8ef3c5", "#06111d");
+    drawCanvasCodeChip(ctx, x + width - 48, y + 8, row.right, "#f8c96a", "#fb7185", "#261407");
+    drawCanvasAxisBar(ctx, x + 168, y + 20, width - 232, row.value);
+    ctx.fillStyle = state.tone === "negative" ? "#f8c96a" : state.tone === "positive" ? "#8ef3c5" : "rgba(231,238,247,0.78)";
+    ctx.font = "800 20px Microsoft YaHei, sans-serif";
+    ctx.fillText(state.label, x + width - 132, y + 29);
+  }
+
+  function drawCanvasComparison(ctx, x, y, width, height, rows) {
+    ctx.fillStyle = "rgba(10,18,33,0.42)";
+    roundedRect(ctx, x, y, width, height, 20);
+    ctx.fill();
+    ctx.fillStyle = "#f7fbff";
+    ctx.font = "800 30px Microsoft YaHei, sans-serif";
+    ctx.fillText("我会给出 / 我期待对方", x + 24, y + 48);
+    rows.forEach((row, index) => {
+      const rowY = y + 78 + index * 76;
+      ctx.fillStyle = "rgba(8,17,31,0.35)";
+      roundedRect(ctx, x + 24, rowY, width - 48, 58, 12);
+      ctx.fill();
+      ctx.fillStyle = "#f7fbff";
+      ctx.font = "800 22px Microsoft YaHei, sans-serif";
+      ctx.fillText(row.title, x + 42, rowY + 36);
+      ctx.fillStyle = "rgba(231,238,247,0.78)";
+      ctx.font = "700 19px Microsoft YaHei, sans-serif";
+      ctx.fillText(row.selfText, x + 150, rowY + 24);
+      ctx.fillText(row.otherText, x + 150, rowY + 48);
+      ctx.fillStyle = row.tone === "expect" ? "#f8c96a" : row.tone === "give" ? "#8ef3c5" : "rgba(231,238,247,0.78)";
+      ctx.font = "800 20px Microsoft YaHei, sans-serif";
+      drawWrappedCanvasText(ctx, row.summary, x + width - 276, rowY + 34, 230, 24, 2);
+    });
+  }
+
+  function drawCanvasGapVector(ctx, x, y, width, height, vector) {
+    ctx.fillStyle = "rgba(10,18,33,0.42)";
+    roundedRect(ctx, x, y, width, height, 20);
+    ctx.fill();
+    ctx.fillStyle = "#f7fbff";
+    ctx.font = "800 30px Microsoft YaHei, sans-serif";
+    ctx.fillText("关系差值", x + 24, y + 48);
+    ctx.fillStyle = "#8ef3c5";
+    ctx.font = "900 28px Microsoft YaHei, sans-serif";
+    ctx.fillText(vector.title, x + width - 238, y + 48);
+    const trackX = x + 120;
+    const trackY = y + 94;
+    const trackW = width - 240;
+    drawCanvasGapTrack(ctx, trackX, trackY, trackW, vector);
+    ctx.fillStyle = "rgba(231,238,247,0.78)";
+    ctx.font = "800 22px Microsoft YaHei, sans-serif";
+    ctx.fillText("我会给出", x + 24, trackY + 8);
+    ctx.fillText("我期待对方", x + width - 154, trackY + 8);
+    ctx.fillStyle = "rgba(231,238,247,0.72)";
+    ctx.font = "700 22px Microsoft YaHei, sans-serif";
+    ctx.fillText(`${vector.directionLabel} · ${vector.intensityLabel}`, x + 24, y + 160);
+  }
+
+  function drawCanvasAnswerCode(ctx, x, y, width, height, answerCode) {
+    ctx.fillStyle = "rgba(10,18,33,0.54)";
+    roundedRect(ctx, x, y, width, height, 18);
+    ctx.fill();
+    ctx.fillStyle = "#8ef3c5";
+    ctx.font = "800 24px Microsoft YaHei, sans-serif";
+    ctx.fillText("答案码", x + 24, y + 38);
+    ctx.fillStyle = "#f7fbff";
+    ctx.font = "21px Consolas, monospace";
+    drawWrappedCanvasText(ctx, answerCode, x + 24, y + 72, width - 48, 26, 4);
+  }
+
+  function drawCanvasCodeChip(ctx, x, y, text, colorA, colorB, textColor) {
+    const gradient = ctx.createLinearGradient(x, y, x + 32, y + 32);
+    gradient.addColorStop(0, colorA);
+    gradient.addColorStop(1, colorB);
+    ctx.fillStyle = gradient;
+    roundedRect(ctx, x, y, 34, 34, 8);
+    ctx.fill();
+    ctx.fillStyle = textColor;
+    ctx.font = "900 20px Microsoft YaHei, sans-serif";
+    ctx.fillText(text, x + 10, y + 24);
+  }
+
+  function drawCanvasAxisBar(ctx, x, y, width, value) {
+    const gradient = ctx.createLinearGradient(x, y, x + width, y);
+    gradient.addColorStop(0, "rgba(125,211,252,0.9)");
+    gradient.addColorStop(0.5, "rgba(56,75,104,0.68)");
+    gradient.addColorStop(1, "rgba(248,201,106,0.92)");
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 10;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + width, y);
+    ctx.stroke();
+    const markerX = x + width * ((100 - clamp(value)) / 200);
+    ctx.fillStyle = "#8ef3c5";
+    ctx.beginPath();
+    ctx.arc(markerX, y, 11, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawCanvasGapTrack(ctx, x, y, width, vector) {
+    ctx.strokeStyle = "rgba(231,238,247,0.18)";
+    ctx.lineWidth = 14;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + width, y);
+    ctx.stroke();
+    const center = x + width / 2;
+    ctx.strokeStyle = "rgba(247,251,255,0.28)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(center, y - 22);
+    ctx.lineTo(center, y + 22);
+    ctx.stroke();
+    const vectorWidth = Math.max(26, width * (parseFloat(vector.width) / 100));
+    const start = vector.direction === "give" ? center - vectorWidth : vector.direction === "balanced" ? center - vectorWidth / 2 : center;
+    const end = vector.direction === "give" ? center : vector.direction === "balanced" ? center + vectorWidth / 2 : center + vectorWidth;
+    ctx.strokeStyle = vector.direction === "give" ? "#7dd3fc" : vector.direction === "expect" ? "#f8c96a" : "#8ef3c5";
+    ctx.lineWidth = 12;
+    ctx.beginPath();
+    ctx.moveTo(start, y);
+    ctx.lineTo(end, y);
+    ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.beginPath();
+    if (vector.direction === "give") {
+      ctx.moveTo(start - 12, y);
+      ctx.lineTo(start + 6, y - 11);
+      ctx.lineTo(start + 6, y + 11);
+    } else if (vector.direction === "expect") {
+      ctx.moveTo(end + 12, y);
+      ctx.lineTo(end - 6, y - 11);
+      ctx.lineTo(end - 6, y + 11);
+    } else {
+      ctx.arc(center, y, 12, 0, Math.PI * 2);
+    }
+    ctx.closePath();
+    ctx.fill();
   }
 
   function roundedRect(ctx, x, y, width, height, radius) {
