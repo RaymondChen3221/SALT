@@ -1,0 +1,50 @@
+name: Deploy static SALT app
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare clean site
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site
+          cp index.html styles.css app.js questions.js .nojekyll _site/
+          cp -R data assets img _site/
+          mkdir -p _site/docs
+          cp docs/scoring.md docs/github_pages.md _site/docs/
+          find _site \( -name 'REF.xlsx' -o -name '~$REF.xlsx' -o -path '_site/tools/*' -o -path '_site/outputs/*' \) -print0 | xargs -0 -r rm -rf
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
